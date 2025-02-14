@@ -7,7 +7,12 @@ use App\Http\Requests\UpdateEventRequest;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
+use App\Models\Menu\Ingredient;
+use App\Models\Menu\Item;
 use App\Models\Menu\Menu;
+use App\Models\MenuEvent\MenuEventHasItem;
+use App\Models\MenuEvent\MenuEventItemHasIngredient;
+use App\Models\MenuEvent\MenuEventItemHasMatherial;
 use App\Services\CreateMenuEventService;
 use Illuminate\Http\Request;
 
@@ -15,7 +20,12 @@ class EventController extends Controller
 {
     public function __construct(
         protected Menu $menu,
+        protected Item $item,
         protected Event $event,
+        protected Ingredient $ingredient,
+        protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
+        protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
+        protected MenuEventHasItem $menu_event_has_item,
     ){}
     /**
      * Display a listing of the resource.
@@ -94,5 +104,15 @@ class EventController extends Controller
         if(!$event) dd("Evento nao encontrado");
 
         return view('event.checklist', compact('event'));
+    }
+
+    public function check_ingredient(Request $request) {
+        $check = $request->check ?? false;
+
+        $event = $this->event->find($request->event_id);
+        $ingredient = $this->ingredient->find($request->ingredient_id);
+        $item = $this->item->find($request->item_id);
+
+        // $menu_event_item_has_ingredient->where('event_id')
     }
 }

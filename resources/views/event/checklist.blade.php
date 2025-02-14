@@ -70,11 +70,17 @@
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
                                         @if (isset($menuItem->item->ingredients[$i]))
-                                            <input type="checkbox">
+                                            <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->item->ingredients[$i]->ingredient->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                                @csrf
+                                                @method('patch')
+                                                <input type="checkbox" name="check">
+                                            </form>
                                         @endif
                                     </td>
                                     <td class="py-2 px-4 text-center align-top">
-                                        {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
+                                        <form action="">
+                                            {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
+                                        </form>
                                     </td>
                                     <td class="py-2 px-4 align-top">
                                         {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
@@ -96,5 +102,16 @@
                 </table>
             </div>
         </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", (event) => {
+                const checklist_forms = document.querySelectorAll(".form-checklist")
+                checklist_forms.forEach(checklist=>{
+                    const checkbox = checklist.querySelector("input[type=checkbox]")
+
+                    checkbox.addEventListener('change', (e)=>checklist.submit())
+                })
+            });
+
+        </script>
     </body>
 </html>

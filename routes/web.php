@@ -14,12 +14,14 @@ Route::get('/', function () {
 });
 
 Route::get('/menu',  [MenuController::class, 'index']);
-Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist']);
+Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
 Route::delete('/menu/items/{item_id}/ingredients/{id}',  [IngredientController::class, 'destroy'])->name('ingredient.destroy');
 Route::delete('/menu/items/{item_id}/matherial/{id}',  [MatherialController::class, 'destroy'])->name('matherial.destroy');
 Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
 Route::post('/event/store', [EventController::class, 'store'])->name('event.store');
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
+
+Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');
 
 
 Route::get('/teste', function() {
