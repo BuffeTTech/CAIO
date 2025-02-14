@@ -4,10 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMatherialRequest;
 use App\Http\Requests\UpdateMatherialRequest;
-use App\Models\Matherial;
+use App\Models\Menu\Item;
+use App\Models\Menu\ItemHasMatherial;
+use App\Models\Menu\Matherial;
+use App\Models\Menu\Menu;
+use Illuminate\Http\Request;
 
 class MatherialController extends Controller
 {
+    public function __construct(
+        protected Menu $menu,
+        protected Item $items,
+        protected Matherial $matherial,
+        protected ItemHasMatherial $item_has_matherial,
+    ){}
     /**
      * Display a listing of the resource.
      */
@@ -59,8 +69,24 @@ class MatherialController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Matherial $matherial)
+    public function destroy(Request $request)
     {
-        //
+        $matherial = $this->matherial->find($request->id);
+        if(!$matherial) {
+            return back()->withErrors(['matherial'=> "Material não existe"]);
+        }
+        $item = $this->items->find($request->item_id);
+        if(!$item) {
+            return back()->withErrors(['item'=> "Item não existe"]);
+        }
+
+        $item_has_matherial = $this->item_has_matherial->where('matherial_id', $matherial->id)
+                                                ->where('item_id', $item->id)->get()->first();
+        if(!$item_has_matherial) {
+            return back()->withErrors(['item_matherial'=> "Relacionamento não existe"]);
+        }
+        $item_has_matherial->delete();
+
+        return back()->with('message', "Material deletado com sucesso!");
     }
 }

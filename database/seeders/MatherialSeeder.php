@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\MatherialType;
-use App\Models\ItemHasMatherial;
-use App\Models\Matherial;
+use App\Models\Menu\ItemHasMatherial;
+use App\Models\Menu\Matherial;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 

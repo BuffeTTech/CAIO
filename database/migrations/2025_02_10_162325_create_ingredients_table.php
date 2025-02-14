@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('unit');
             $table->string('observation')->nullable();
             $table->float('quantity');
+            $table->softDeletes('deleted_at', precision: 0);
             $table->timestamps();
         });
     }

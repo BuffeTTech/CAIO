@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
-use App\Models\Menu;
+use App\Models\Menu\Menu;
 
 class MenuController extends Controller
 {

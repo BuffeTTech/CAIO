@@ -54,6 +54,7 @@
                         @foreach ($event->menu->items as $menuItem)
                             @php 
                                 $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
+                                $maxRows = $maxRows == 0 ? 1 : $maxRows;
                             @endphp
                             
                             @for ($i = 0; $i < $maxRows; $i++)

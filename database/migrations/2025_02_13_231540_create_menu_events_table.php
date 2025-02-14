@@ -11,12 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('item_has_ingredients', function (Blueprint $table) {
+        Schema::create('menu_events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id')->constrained()->onDelete('cascade');
-            $table->foreignId('ingredient_id')->constrained()->onDelete('cascade');
-            $table->float('quantity');
-            $table->string('observation')->nullable();
+            $table->foreignId('menu_id')->constrained()->onDelete('cascade'); 
             $table->timestamps();
         });
     }
@@ -26,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('item_has_ingredients');
+        Schema::dropIfExists('menu_events');
     }
 };

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\MenuEvent;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MatherialChanges extends Model
+class MenuEventItemHasIngredient extends Model
 {
     protected $guarded = [];
 }

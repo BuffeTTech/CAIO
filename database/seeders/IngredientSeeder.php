@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\IngredientCategory;
-use App\Models\Ingredient;
-use App\Models\ItemHasIngredient;
+use App\Models\Menu\Ingredient;
+use App\Models\Menu\ItemHasIngredient;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 

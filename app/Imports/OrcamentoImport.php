@@ -3,7 +3,7 @@
 namespace App\Imports;
 
 use App\Enums\FoodCategory;
-use App\Models\{Item, Menu, MenuHasItem};
+use App\Models\Menu\{Item, Menu, MenuHasItem};
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;

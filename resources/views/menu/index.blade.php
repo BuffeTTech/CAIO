@@ -40,37 +40,59 @@
                         <tbody>
                             @foreach ($menu->items as $menuItem)
                                 @php 
-                                    $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
+                                    $totalIngredients = count($menuItem->item->ingredients);
+                                    $totalMatherials = count($menuItem->item->matherials);
+                                    $maxRows = max($totalIngredients, $totalMatherials);
+                                    $maxRows = $maxRows == 0 ? 1 : $maxRows;
                                 @endphp
                                 
                                 @for ($i = 0; $i < $maxRows; $i++)
-                                    <tr class="border-b border-gray-200">
-                                        @if ($i == 0)
-                                            <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
+                                <tr class="border-b border-gray-200">
+                                    @if ($i == 0)
+                                        <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
+                                    @endif
+                                    {{-- @if ($i == 1)
+                                        <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
+                                            <button class="bg-green-500 text-white px-4 py-2 rounded">➕ Adicionar Ingrediente</button>
+                                        </td>                                    
+                                    @endif
+                                    @if ($i == 2)
+                                        <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
+                                            <button class="bg-blue-500 text-white px-4 py-2 rounded">➕ Adicionar Material</button>
+                                        </td>
+                                    @endif --}}
+                                    
+                                    <td class="py-2 px-4 text-center align-top">
+                                        {{ $menuItem->item->ingredients[$i]->quantity ?? '' }}
+                                    </td>
+                                    <td class="py-2 px-4 align-top">
+                                        {{ $menuItem->item->ingredients[$i]->ingredient->name ?? '' }}
+                                    </td>
+                                    <td class="py-2 px-4 text-center align-top border-r border-gray-200">
+                                        @if (isset($menuItem->item->ingredients[$i]))
+                                        <form action="{{route('ingredient.destroy',['id'=>$menuItem->item->ingredients[$i]->ingredient->id, "item_id"=>$menuItem->item->id])}}" method="POST">
+                                            @method('delete')
+                                            @csrf
+                                            <button type="submit">❌</button>
+                                        </form>
                                         @endif
-                                        <td class="py-2 px-4 text-center align-top">
-                                            {{ $menuItem->item->ingredients[$i]->quantity ?? '' }}
-                                        </td>
-                                        <td class="py-2 px-4 align-top">
-                                            {{ $menuItem->item->ingredients[$i]->ingredient->name ?? '' }}
-                                        </td>
-                                        <td class="py-2 px-4 text-center align-top border-r border-gray-200">
-                                            @if (isset($menuItem->item->ingredients[$i]))
-                                                <input type="checkbox">
-                                            @endif
-                                        </td>
-                                        <td class="py-2 px-4 text-center align-top">
-                                            {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
-                                        </td>
-                                        <td class="py-2 px-4 align-top">
-                                            {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
-                                        </td>
-                                        <td class="py-2 px-4 text-center align-top">
-                                            @if (isset($menuItem->item->matherials[$i]))
-                                                <input type="checkbox">
-                                            @endif
-                                        </td>
-                                    </tr>
+                                    </td>
+                                    <td class="py-2 px-4 text-center align-top">
+                                        {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
+                                    </td>
+                                    <td class="py-2 px-4 align-top">
+                                        {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
+                                    </td>
+                                    <td class="py-2 px-4 text-center align-top">
+                                        @if (isset($menuItem->item->matherials[$i]))
+                                        <form action="{{route('matherial.destroy',['id'=>$menuItem->item->matherials[$i]->matherial->id, "item_id"=>$menuItem->item->id])}}" method="POST">
+                                            @method('delete')
+                                            @csrf
+                                            <button type="submit">❌</button>
+                                        </form>
+                                        @endif
+                                    </td>
+                                </tr>
                                 @endfor
                             @endforeach
                         </tbody>
