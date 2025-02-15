@@ -73,7 +73,7 @@
                                             <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->item->ingredients[$i]->ingredient->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
                                                 @csrf
                                                 @method('patch')
-                                                <input type="checkbox" name="check">
+                                                <input type="checkbox" name="check" {{ $menuItem->ingredients[$i]->checked_at != null ? "checked" : ""}}>
                                             </form>
                                         @endif
                                     </td>
@@ -87,12 +87,20 @@
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
                                         @if (isset($menuItem->item->matherials[$i]))
-                                            <input type="checkbox">
+                                            <form action="{{ route('event.checklist.check_matherial', ['event_id'=>$event->id, 'matherial_id'=>$menuItem->item->matherials[$i]->matherial->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                                @csrf
+                                                @method('patch')
+                                                <input type="checkbox" name="check" {{ $menuItem->matherials[$i]->checked_at != null ? "checked" : ""}}>
+                                            </form>
                                         @endif
                                     </td>
                                     @if ($i == 0)
                                         <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
-                                            <input type="checkbox">
+                                            <form action="{{ route('event.checklist.check_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                                @csrf
+                                                @method('patch')
+                                                <input type="checkbox" name="check" {{ $menuItem->checked_at != null ? "checked" : ""}}>
+                                            </form>
                                         </td>
                                     @endif
                                 </tr>

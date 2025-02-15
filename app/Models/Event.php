@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Menu\Menu;
+use App\Models\MenuEvent\MenuEvent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,7 +16,7 @@ class Event extends Model
 
     public function menu()
     {
-        return $this->belongsTo(Menu::class, 'menu_id');
+        return $this->belongsTo(MenuEvent::class, 'menu_id');
     }
     public function client()
     {

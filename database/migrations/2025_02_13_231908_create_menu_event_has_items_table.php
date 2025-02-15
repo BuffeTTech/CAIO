@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('menu_event_has_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('menu_id')->constrained()->onDelete('cascade'); 
+            $table->foreignId('menu_event_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('item_id')->constrained()->onDelete('cascade'); 
             $table->dateTime('checked_at')->nullable()->default(null); 
             $table->timestamps();

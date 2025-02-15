@@ -9,7 +9,9 @@ use App\Models\Client;
 use App\Models\Event;
 use App\Models\Menu\Ingredient;
 use App\Models\Menu\Item;
+use App\Models\Menu\Matherial;
 use App\Models\Menu\Menu;
+use App\Models\MenuEvent\MenuEvent;
 use App\Models\MenuEvent\MenuEventHasItem;
 use App\Models\MenuEvent\MenuEventItemHasIngredient;
 use App\Models\MenuEvent\MenuEventItemHasMatherial;
@@ -22,7 +24,9 @@ class EventController extends Controller
         protected Menu $menu,
         protected Item $item,
         protected Event $event,
+        protected Matherial $matherial,
         protected Ingredient $ingredient,
+        protected MenuEvent $menu_event,
         protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
         protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
         protected MenuEventHasItem $menu_event_has_item,
@@ -113,6 +117,100 @@ class EventController extends Controller
         $ingredient = $this->ingredient->find($request->ingredient_id);
         $item = $this->item->find($request->item_id);
 
-        // $menu_event_item_has_ingredient->where('event_id')
+        $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
+        if(!$menu_event) dd("Evento nao encontrado");
+
+        $menu_event_has_item = $this->menu_event_has_item->where('menu_event_id', $menu_event->id)
+                                                         ->where('item_id', $item->id)->get()->first();
+        if(!$menu_event_has_item) dd("Item nao encontrado");
+        
+
+        $menu_event_item_has_ingredient = $this->menu_event_item_has_ingredient->where('menu_event_has_items_id', $menu_event_has_item->id)
+                                                                               ->where('ingredient_id', $ingredient->id)->get()->first();
+        if(!$menu_event_item_has_ingredient) dd("Ingrediente nao encontrado");
+
+        $menu_event_item_has_ingredient->update([
+            "checked_at"=>$check == true ? now() : null
+        ]);
+
+        $this->is_checked_all_items($menu_event_has_item);
+        return back()->with("message", 'Alterado com sucesso');
     }
+    public function check_matherial(Request $request) {
+        $check = $request->check ?? false;
+
+        $event = $this->event->find($request->event_id);
+        $matherial = $this->matherial->find($request->matherial_id);
+        $item = $this->item->find($request->item_id);
+
+        $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
+        if(!$menu_event) dd("Evento nao encontrado");
+
+        $menu_event_has_item = $this->menu_event_has_item->where('menu_event_id', $menu_event->id)
+                                                         ->where('item_id', $item->id)->get()->first();
+        if(!$menu_event_has_item) dd("Item nao encontrado");
+        
+
+        $menu_event_item_has_matherial = $this->menu_event_item_has_matherial->where('menu_event_has_items_id', $menu_event_has_item->id)->where('matherial_id', $matherial->id)->get()->first();
+        if(!$menu_event_item_has_matherial) dd("Material nao encontrado");
+
+        $menu_event_item_has_matherial->update([
+            "checked_at"=>$check == true ? now() : null
+        ]);
+
+        $this->is_checked_all_items($menu_event_has_item);
+        return back()->with("message", 'Alterado com sucesso');
+    }
+
+    public function check_item(Request $request) {
+        $check = $request->check ?? false;
+    
+        // Busca o evento e o item ou falha se não encontrar
+        $event = $this->event->findOrFail($request->event_id);
+        $item = $this->item->findOrFail($request->item_id);
+    
+        // Busca o menu_event associado ao evento
+        $menu_event = $this->menu_event->where('event_id', $event->id)->firstOrFail();
+    
+        // Busca o item dentro do evento do menu
+        $menu_event_has_item = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->where('item_id', $item->id)
+            ->firstOrFail();
+    
+        // Atualiza os ingredientes e materiais, independentemente do estado atual
+        $this->menu_event_item_has_matherial
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->update(['checked_at' => $check ? now() : null]);
+    
+        $this->menu_event_item_has_ingredient
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->update(['checked_at' => $check ? now() : null]);
+    
+        // Verifica se todos os ingredientes e materiais foram checados
+        $this->is_checked_all_items($menu_event_has_item);
+    
+        return back();
+    }
+    
+
+    private function is_checked_all_items(MenuEventHasItem $menu_event_has_item)
+    {
+        // Verifica se todos os ingredientes e materiais estão checados
+        $all_matherials_checked = !$this->menu_event_item_has_matherial
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->pluck('checked_at')
+            ->contains(null);
+
+        $all_ingredients_checked = !$this->menu_event_item_has_ingredient
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->pluck('checked_at')
+            ->contains(null);
+
+        // Atualiza o status do item geral com base na verificação
+        $menu_event_has_item->update([
+            "checked_at" => ($all_ingredients_checked && $all_matherials_checked) ? now() : null
+        ]);
+    }
+
 }

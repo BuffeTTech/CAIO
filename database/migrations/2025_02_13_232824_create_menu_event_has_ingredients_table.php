@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('menu_event_item_has_matherials', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id')->constrained()->onDelete('cascade'); 
+            $table->foreignId('menu_event_has_items_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('matherial_id')->constrained()->onDelete('cascade'); 
             $table->dateTime('checked_at')->nullable()->default(null); 
             $table->timestamps();
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('menu_event_has_ingredients');
+        Schema::dropIfExists('menu_event_item_has_matherials');
     }
 };
