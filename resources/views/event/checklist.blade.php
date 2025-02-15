@@ -51,7 +51,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($event->menu->items as $menuItem)
+                        @foreach ($event->menu_event->items as $key => $menuItem)
                             @php 
                                 $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
                                 $maxRows = $maxRows == 0 ? 1 : $maxRows;
@@ -70,7 +70,7 @@
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
                                         @if (isset($menuItem->item->ingredients[$i]))
-                                            <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->item->ingredients[$i]->ingredient->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                            <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->ingredients[$i]->ingredient_id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
                                                 @csrf
                                                 @method('patch')
                                                 <input type="checkbox" name="check" {{ $menuItem->ingredients[$i]->checked_at != null ? "checked" : ""}}>
@@ -87,7 +87,7 @@
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
                                         @if (isset($menuItem->item->matherials[$i]))
-                                            <form action="{{ route('event.checklist.check_matherial', ['event_id'=>$event->id, 'matherial_id'=>$menuItem->item->matherials[$i]->matherial->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                            <form action="{{ route('event.checklist.check_matherial', ['event_id'=>$event->id, 'matherial_id'=>$menuItem->matherials[$i]->matherial_id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
                                                 @csrf
                                                 @method('patch')
                                                 <input type="checkbox" name="check" {{ $menuItem->matherials[$i]->checked_at != null ? "checked" : ""}}>
@@ -100,6 +100,11 @@
                                                 @csrf
                                                 @method('patch')
                                                 <input type="checkbox" name="check" {{ $menuItem->checked_at != null ? "checked" : ""}}>
+                                            </form>
+                                            <form action="{{ route('event.checklist.delete_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" method="post">
+                                                @csrf
+                                                @method('delete')
+                                                <button type="submit" title="Deletar item {{ $menuItem->item->name }} (somente do cardapio do cliente)">❌</button>
                                             </form>
                                         </td>
                                     @endif

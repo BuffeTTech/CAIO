@@ -54,11 +54,7 @@
                                         {{ \Carbon\Carbon::parse($event->date)->locale('pt_BR')->translatedFormat('d \d\e M. \d\e Y \à\s H:i') }}
                                     </td>
                                     <td class="py-2 px-4 text-center align-top">
-                                        <form action="{{route('event.checklist',['event_id'=> $event->id])}}" method="GET">
-                                            @csrf
-                                            @method('GET')
-                                            <button type="submit">✅</button>
-                                        </form>
+                                        <a href="{{ route('event.checklist',['event_id'=> $event->id])}}">✅</a>
                                     </td>
                                 </tr>
                             @endforeach

@@ -187,9 +187,9 @@ class EventController extends Controller
             ->where('menu_event_has_items_id', $menu_event_has_item->id)
             ->update(['checked_at' => $check ? now() : null]);
     
-        // Verifica se todos os ingredientes e materiais foram checados
+        // // Verifica se todos os ingredientes e materiais foram checados
         $this->is_checked_all_items($menu_event_has_item);
-    
+
         return back();
     }
     
@@ -211,6 +211,30 @@ class EventController extends Controller
         $menu_event_has_item->update([
             "checked_at" => ($all_ingredients_checked && $all_matherials_checked) ? now() : null
         ]);
+    }
+
+    public function delete_item(Request $request) {
+        $event = $this->event->findOrFail($request->event_id);
+        $item = $this->item->findOrFail($request->item_id);
+    
+        // Busca o menu_event associado ao evento
+        $menu_event = $this->menu_event->where('event_id', $event->id)->firstOrFail();
+    
+        // Busca o item dentro do evento do menu
+        $menu_event_has_item = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->where('item_id', $item->id)
+            ->firstOrFail();
+        $all_matherials_checked = !$this->menu_event_item_has_matherial
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->delete();
+
+        $all_ingredients_checked = !$this->menu_event_item_has_ingredient
+            ->where('menu_event_has_items_id', $menu_event_has_item->id)
+            ->delete();
+        
+        $menu_event_has_item->delete();
+        return back();
     }
 
 }

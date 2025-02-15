@@ -16,6 +16,10 @@ class Event extends Model
 
     public function menu()
     {
+        return $this->belongsTo(Menu::class, 'menu_id');
+    }
+    public function menu_event()
+    {
         return $this->belongsTo(MenuEvent::class, 'menu_id');
     }
     public function client()
