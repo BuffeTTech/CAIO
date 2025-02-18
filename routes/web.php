@@ -14,8 +14,8 @@ Route::get('/', function () {
 });
 
 Route::get('/menu',  [MenuController::class, 'index']);
-Route::post('/menu/{menu_id}',  [MenuController::class, 'store_item_to_menu'])->name('menu.store_item_to_menu');
-Route::get('/menu/{menu_id}',  [MenuController::class, 'add_item_to_menu'])->name('menu.add_item_to_menu');
+Route::post('/menu/{menu_id}/item',  [MenuController::class, 'store_item_to_menu'])->name('menu.store_item_to_menu');
+Route::get('/menu/{menu_id}/item',  [MenuController::class, 'add_item_to_menu'])->name('menu.add_item_to_menu');
 
 
 Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
