@@ -65,7 +65,7 @@
                                         <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
                                     @endif
                                     <td class="py-2 px-4 text-center align-top">
-                                        {{ $menuItem->item->ingredients[$i]->quantity ?? '' }}
+                                        {{ $menuItem->ingredients[$i]->quantity ?? '' }}
                                     </td>
                                     <td class="py-2 px-4 align-top">
                                         {{ $menuItem->item->ingredients[$i]->ingredient->name ?? '' }}
