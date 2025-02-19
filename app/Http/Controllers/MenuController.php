@@ -14,6 +14,7 @@ class MenuController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
+        protected MenuHasItem $menu_has_item,
     )
     {
     }
@@ -49,7 +50,7 @@ class MenuController extends Controller
      */
     public function show(Menu $menu)
     {
-        //
+        dd("Show menu");
     }
 
     /**
@@ -77,61 +78,75 @@ class MenuController extends Controller
     }
 
     public function store_item_to_menu(Request $request) {
-        $menuItems = MenuHasItem::where('menu_id', $request->menu_id)->get();
+        $menu = $this->menu->find($request->menu_id);
+        if (!$menu) {
+            dd("Menu não encontrado");
+        }
 
-        // foreach ($menuItems as $item) {
-        //     $usedItem = [];
-        //     $numItem = random_int(0, 7);
+        $item = $this->items->find($request->item_id);
+        if (!$item) {
+            dd("Item não encontrado");
+        }
+        $item_exists = $this->menu_has_item->where('item_id', $item->id)
+                                    ->where('menu_id', $menu->id)
+                                    ->get()
+                                    ->first();
+        
+        if($item_exists) {
+            return dd("Este item já está no menu");
+        }
 
-        //     for ($i = 0; $i < $numItem; $i++) {
-        //         do {
-        //             $randomIngredientId = $allIngredientIds[array_rand($allIngredientIds)];
-        //         } while (in_array($randomIngredientId, $usedItem));
-
-        //         $usedItem[] = $randomIngredientId;
-
-        //         // Adiciona relação para inserção em lote
-        //         $batchInsertRelations[] = [
-        //             "item_id" => $ingredientId,
-        //             "ingredient_id" => $randomIngredientId,
-        //             "observation" => "",
-        //             "quantity" => random_int(1, 3),
-        //         ];
-        //     }
-        // }
-
-        $item = MenuHasItem::create([
+        $item = $this->menu_has_item->create([
             "menu_id"=>$request->menu_id,
             "item_id"=>$request->item_id
         ]);
 
-        // $client = Client::inRandomOrder()->first();
-        // $menu = Menu::inRandomOrder()->first();
-        // $event = Event::create([
-        //     "client_id"=>$client->id,
-        //     "menu_id"=>$menu->id,
-        //     "date"=>fake()->dateTimeBetween('now', '+4 months'),
-        //     "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id
-        // ]);
-
-        // $ingredientService = new CreateMenuEventService();
-        // $ingredientService->handle($event, $menu);
         return redirect()->back();
     }
 
     public function add_item_to_menu(Request $request) {
+        // Recupera o menu
         $menu = $this->menu->find($request->menu_id);
-        if(!$menu) {
-            dd("Menu nao encontrado");
+        if (!$menu) {
+            dd("Menu não encontrado");
         }
 
+        // Inicializa a variável $items
         $items = null;
-        if($request->query('query')) {
-            $items = $this->items::when($request->has('query'), function ($whenQuery) use ($request) {
-                $whenQuery->where('name', 'like', '%' . $request->query('query') . '%');
-            })->orderByDesc('created_at')->paginate(10)->withQueryString();
+    
+        if ($request->has('query')) {
+            $query = $request->query('query');
+    
+            $itemIdsAlreadyInMenu = $menu->items()->pluck('item_id')->toArray();
+    
+            $items = $this->items::where('name', 'like', '%' . $query . '%')
+                ->whereNotIn('id', $itemIdsAlreadyInMenu)
+                ->orderByDesc('created_at') 
+                ->paginate(10)
+                ->withQueryString();
         }
-
+    
         return view('menu.add_item', compact('menu', 'items'));
     }
+
+    public function remove_item_from_menu(Request $request) {
+        $menu = $this->menu->find($request->menu_id);
+        if(!$menu) {
+            return back()->withErrors(['menu'=> "Menu não existe"]);
+        }
+        $item = $this->items->find($request->item_id);
+        if(!$item) {
+            return back()->withErrors(['item'=> "Item não existe"]);
+        }
+        
+        $menu_has_item = $this->menu_has_item->where('menu_id', $menu->id)
+                                             ->where('item_id', $item->id)->get()->first();
+        if(!$menu_has_item) {
+            return back()->withErrors(['menu_has_item'=> "Relacionamento não existe"]);
+        }
+        $menu_has_item->delete();
+
+        return back()->with('message', "Material deletado com sucesso!");
+    }
+    
 }

@@ -101,6 +101,62 @@ class EventController extends Controller
         //
     }
 
+    public function add_item_to_checklist(Request $request){
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) dd("Evento nao encontrado");
+
+        $items = null;
+    
+        if ($request->has('query')) {
+            $query = $request->query('query');
+
+            $itemIdsAlreadyInMenu = $event->menu_event->items->pluck('item_id')->toArray();
+    
+            $items = $this->item::where('name', 'like', '%' . $query . '%')
+                ->whereNotIn('id', $itemIdsAlreadyInMenu) 
+                ->orderByDesc('created_at')
+                ->paginate(10)
+                ->withQueryString();
+        }
+
+        return view('event.add_item_checklist', compact('event', 'items'));
+    }
+    public function store_item_to_checklist(Request $request){
+        
+        $event = $this->event->find($request->event_id);
+        if (!$event) {
+            dd("event não encontrado");
+        }
+
+        $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
+        if (!$menu_event) {
+            dd("menu não encontrado");
+        }
+
+        $item = $this->item->find($request->item_id);
+        if (!$item) {
+            dd("Item não encontrado");
+        }
+        $item_exists = $this->menu_event_has_item->where('item_id', $item->id)
+                                    ->where('menu_event_id', $menu_event->id)
+                                    ->get()
+                                    ->first();
+        
+        if($item_exists) {
+            return dd("Este item já está no event");
+        }
+
+        $item = $this->menu_event_has_item->create([
+            "menu_event_id"=>$menu_event->id,
+            "item_id"=>$request->item_id,
+            "checked_at"=>null
+        ]);
+
+
+        return back();
+    }
     public function checklist(Request $request) {
         $id = $request->event_id;
 

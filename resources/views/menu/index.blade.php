@@ -23,6 +23,8 @@
                 <div class="mb-6 p-6 bg-white shadow-md rounded-lg">
                     <!-- Título do Menu -->
                     <h1 class="text-2xl font-bold text-gray-800 mb-3">{{ $menu->name }}</h1>
+
+                    <a href="{{route('menu.add_item_to_menu', ['menu_id'=>$menu->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Adicionar item</a>
                     
                     <!-- Tabela de Itens -->
                     <table class="w-full text-left text-sm text-gray-800">
@@ -35,6 +37,7 @@
                                 <th class="py-2 px-4 text-center">QTD</th>
                                 <th class="py-2 px-4">Equipamentos</th>
                                 <th class="py-2 px-4 text-center">✔</th>
+                                <th class="py-2 px-4 text-center"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,6 +95,15 @@
                                         </form>
                                         @endif
                                     </td>
+                                    @if ($i == 0)
+                                        <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
+                                            <form method="post" action="{{ route('menu.remove_item_from_menu', ['menu_id'=>$menu->id, 'item_id'=> $menuItem->item->id]) }}">
+                                                @csrf
+                                                @method('delete')
+                                                <button type="submit" title="Deletar item {{ $menuItem->item->name }}">❌</button>
+                                            </form>
+                                        </td>
+                                    @endif
                                 </tr>
                                 @endfor
                             @endforeach

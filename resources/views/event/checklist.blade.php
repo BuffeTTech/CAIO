@@ -33,6 +33,8 @@
                     <p class="text-sm">{{ $event->address->country }}</p>
                     <p class="text-sm font-medium text-gray-700">CEP: {{ $event->address->zipcode }}</p>
                 </div>
+
+                <a href="{{route('event.add_item_to_checklist', ['event_id'=>$event->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Adicionar item</a>
                 
                 <h1 class="text-2xl font-bold text-gray-800 mb-3">{{ $event->menu->name }}</h1>
                 
