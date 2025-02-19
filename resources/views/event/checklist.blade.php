@@ -71,7 +71,7 @@
                                         {{ $menuItem->item->ingredients[$i]->ingredient->name ?? '' }}
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
-                                        @if (isset($menuItem->item->ingredients[$i]))
+                                        @if (isset($menuItem->ingredients[$i]))
                                             <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->ingredients[$i]->ingredient_id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
                                                 @csrf
                                                 @method('patch')
@@ -88,7 +88,7 @@
                                         {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
                                     </td>
                                     <td class="py-2 px-4 text-center align-top border-r border-gray-200">
-                                        @if (isset($menuItem->item->matherials[$i]))
+                                        @if (isset($menuItem->matherials[$i]))
                                             <form action="{{ route('event.checklist.check_matherial', ['event_id'=>$event->id, 'matherial_id'=>$menuItem->matherials[$i]->matherial_id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
                                                 @csrf
                                                 @method('patch')
