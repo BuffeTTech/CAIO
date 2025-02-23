@@ -14,10 +14,8 @@ return new class extends Migration
         Schema::create('fixed_items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->double('cost');
-            $table->enum('category', array_column(FixedItemsCategory::case(),'name'));
-            $table->float('consumed_per_client');
-            $table->string('unit');
+            $table->double('qtd');
+            $table->enum('category', array_column(FixedItemsCategory::cases(),'name'));
             $table->timestamps();
         });
     }
