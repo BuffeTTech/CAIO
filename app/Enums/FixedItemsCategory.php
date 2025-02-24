@@ -10,4 +10,5 @@ enum FixedItemsCategory: string {
     case DESCARTAVEL = "DESCARTAVEL";
     case TEMPERO = "TEMPERO";
     case UTENSILIO = "UTENSILIO";
+    case BEBIDA = "BEBIDA";
 }

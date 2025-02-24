@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
 use App\Models\Menu\Item;
+use App\Models\FixedItems;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class MenuController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
+        protected FixedItems $fixedItems,
         protected MenuHasItem $menu_has_item,
     )
     {
@@ -25,7 +27,8 @@ class MenuController extends Controller
     public function index()
     {
         $menus = $this->menu->all();
-
+        $fixedItems = $this->fixedItems->all();
+        dd($fixedItems);
         return view('menu.index', compact('menus'));
     }
 
