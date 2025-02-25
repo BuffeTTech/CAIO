@@ -2,8 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\FoodCategory;
 use App\Models\FixedItems;
 use App\Enums\FixedItemsCategory;
+use App\Models\Menu\Item;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -43,6 +45,8 @@ class FixedItemsSeeder extends Seeder
             142,
             29
         ];
+
+        $fixedItemEnum = FoodCategory::getEnumByName("ITEM_FIXO");
         $inputFileName = 'database/seeders/CHEKLIST 2024.xlsx';
 
         // Carrega a planilha
@@ -117,10 +121,13 @@ class FixedItemsSeeder extends Seeder
                 if(!is_numeric($qtd))
                 $qtd = 0;
                 
-                $fixedItem = FixedItems::create([
-                    'name' => $name,
-                    'qtd' =>$qtd,
-                    'category'=>$currentCategory
+                $item = Item::create([
+                    "name" => $name,
+                    "cost" => 0,
+                    "isFixed" => $fixedItemEnum, 
+                    "category" => $currentCategory,
+                    "consumed_per_client" => 0,
+                    "unit" => 'unid'
                 ]);
 
                 // Agora insira no banco de dados (exemplo genérico)

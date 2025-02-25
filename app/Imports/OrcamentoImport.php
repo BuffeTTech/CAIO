@@ -100,6 +100,7 @@ class ImportSheet implements ToCollection, WithChunkReading
 
     private function processRow($row)
     {
+        $itemEnum = FoodCategory::getEnumByName("ITEM_INSUMO");
         try {
             $row_name = $row[0] ?? null;
             $row_category = isset($row[1]) ? explode("- ", $row[1])[1] : null;
@@ -117,6 +118,7 @@ class ImportSheet implements ToCollection, WithChunkReading
                 "name" => $row_name,
             ], [
                 "cost" => $row_cost,
+                "isFixed" => $itemEnum, 
                 "category" => FoodCategory::getEnumByValue($row_category)->name,
                 "consumed_per_client" => $row_consumed_per_client,
                 "unit" => $row_unit

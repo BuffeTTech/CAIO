@@ -16,6 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->double('cost');
+            $table->enum('isFixed', array_column(FoodCategory::cases(),'name'));
             $table->enum('category', array_column(FoodCategory::cases(),'name'));
             $table->float('consumed_per_client');
             $table->string('unit');

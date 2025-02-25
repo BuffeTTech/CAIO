@@ -18,4 +18,6 @@ enum FoodCategory: string {
     case CANAPES = "CANAPÉS";
     case PALITINHOS = "PALITINHOS";
     case LANCHES_FRIOS = "LANCHES FRIOS";
+    case ITEM_FIXO = 'ITEM_FIXO';
+    case ITEM_INSUMO = 'ITEM_INSUMO';
 }
