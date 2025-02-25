@@ -118,7 +118,7 @@ class ImportSheet implements ToCollection, WithChunkReading
                 "name" => $row_name,
             ], [
                 "cost" => $row_cost,
-                "isFixed" => $itemEnum, 
+                "type" => $itemEnum, 
                 "category" => FoodCategory::getEnumByValue($row_category)->name,
                 "consumed_per_client" => $row_consumed_per_client,
                 "unit" => $row_unit

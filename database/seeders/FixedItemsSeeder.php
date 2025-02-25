@@ -6,6 +6,8 @@ use App\Enums\FoodCategory;
 use App\Models\FixedItems;
 use App\Enums\FixedItemsCategory;
 use App\Models\Menu\Item;
+use App\Models\Menu\Menu;
+use App\Models\Menu\MenuHasItem;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -13,6 +15,12 @@ require 'vendor/autoload.php';
 
 class FixedItemsSeeder extends Seeder
 {
+    public function __construct(
+        protected Menu $menu,
+        protected MenuHasItem $menu_has_item,
+    )
+    {
+    }
     /**
      * Run the database seeds.
      */
@@ -45,7 +53,6 @@ class FixedItemsSeeder extends Seeder
             142,
             29
         ];
-
         $fixedItemEnum = FoodCategory::getEnumByName("ITEM_FIXO");
         $inputFileName = 'database/seeders/CHEKLIST 2024.xlsx';
 
@@ -56,13 +63,15 @@ class FixedItemsSeeder extends Seeder
         $worksheet = $spreadsheet->getActiveSheet();
 
         for($i = 0;$i <= 9;$i++){
+            $menu = $this->menu->where('name', $sheetsNames[$i])->first();
             // Variável para guardar a categoria atual
             $currentCategory = null;
             $worksheet = $spreadsheet->getSheetByName($sheetsNames[$i]);
             if ($worksheet === null) {
                 die("A aba" + $sheetsNames[$i] + " não foi encontrada na planilha.\n");
             }
-            echo $sheetsNames[$i];
+            $message = "Importando " . $sheetsNames[$i] . "...\n";
+            echo $message;
             // Percorre a partir da linha 70 em diante
             foreach ($worksheet->getRowIterator($sheetsLines[$i]) as $row) {
                 // Lê as células da linha
@@ -89,19 +98,19 @@ class FixedItemsSeeder extends Seeder
                 if (!empty($colA)) {
                     $currentCategory = $colA;
                     if($currentCategory == 'CAIXA  DE LIMPEZA'){
-                        $currentCategory = FixedItemsCategory::getEnumByValue("LIMPEZA");
+                        $currentCategory = FoodCategory::getEnumByValue("LIMPEZA");
                     }
                     if($currentCategory == 'CAIXA DESCARTAVEL'){
-                        $currentCategory = FixedItemsCategory::getEnumByValue("DESCARTAVEL");
+                        $currentCategory = FoodCategory::getEnumByValue("DESCARTAVEL");
                     }
                     if($currentCategory == 'CAIXA DE TEMPERO'){
-                        $currentCategory = FixedItemsCategory::getEnumByValue("TEMPERO");
+                        $currentCategory = FoodCategory::getEnumByValue("TEMPERO");
                     }
                     if($currentCategory == 'UTENSILIOS GERAL'){
-                        $currentCategory = FixedItemsCategory::getEnumByValue("UTENSILIO");
+                        $currentCategory = FoodCategory::getEnumByValue("UTENSILIO");
                     }
                     if($currentCategory == 'BEBIDAS'){
-                        $currentCategory = FixedItemsCategory::getEnumByValue("BEBIDA");
+                        $currentCategory = FoodCategory::getEnumByValue("BEBIDA");
                     }
                     continue;
                 }
@@ -124,12 +133,20 @@ class FixedItemsSeeder extends Seeder
                 $item = Item::create([
                     "name" => $name,
                     "cost" => 0,
-                    "isFixed" => $fixedItemEnum, 
+                    "type" => $fixedItemEnum, 
                     "category" => $currentCategory,
                     "consumed_per_client" => 0,
                     "unit" => 'unid'
                 ]);
 
+                if($menu != null){
+                    $menuItem = MenuHasItem::create([
+                        "item_id" => $item->id,
+                        "menu_id" => $menu->id,
+                    ]);
+                } else {
+                    continue;
+                }
                 // Agora insira no banco de dados (exemplo genérico)
                 // Se estiver usando PDO, por exemplo:
                 /*
