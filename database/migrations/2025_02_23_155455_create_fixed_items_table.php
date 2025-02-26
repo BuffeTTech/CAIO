@@ -1,6 +1,5 @@
 <?php
-
-use App\Enums\FoodCategory;
+use App\Enums\FixedItemsCategory;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,14 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('items', function (Blueprint $table) {
+        Schema::create('fixed_items', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->double('cost');
-            $table->enum('type', array_column(FoodCategory::cases(),'name'));
-            $table->enum('category', array_column(FoodCategory::cases(),'name'));
-            $table->float('consumed_per_client');
-            $table->string('unit');
+            $table->double('qtd');
+            $table->enum('category', array_column(FixedItemsCategory::cases(),'name'));
             $table->timestamps();
         });
     }
@@ -29,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('items');
+        Schema::dropIfExists('fixed_items');
     }
 };

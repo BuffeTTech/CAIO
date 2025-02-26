@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FoodCategory;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
 use App\Models\Menu\Item;
+use App\Models\FixedItems;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
 use Illuminate\Http\Request;
@@ -14,6 +16,7 @@ class MenuController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
+        protected FixedItems $fixedItems,
         protected MenuHasItem $menu_has_item,
     )
     {
@@ -25,6 +28,8 @@ class MenuController extends Controller
     public function index()
     {
         $menus = $this->menu->all();
+        $items =$this->items->where('type',FoodCategory::getEnumByName("ITEM_INSUMO"))->get();
+        $fixedItems =$this->items->where('type',FoodCategory::getEnumByName("ITEM_FIXO"))->get();
 
         return view('menu.index', compact('menus'));
     }
@@ -48,9 +53,20 @@ class MenuController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Menu $menu)
+    public function show(Request $request)
     {
-        dd("Show menu");
+        // dd($request);
+        $menu = $this->menu->find($request->menu_id);
+        $items = $this->menu_has_item->where('menu_id', $menu->id)->get();
+        $itemIds = $items->pluck('item_id');
+        $menuItems = Item::whereIn('id', $itemIds)
+            ->where('type', FoodCategory::getEnumByName("ITEM_INSUMO"))
+            ->get();
+            
+        $menuFixedItems = Item::whereIn('id', $itemIds)
+        ->where('type', FoodCategory::getEnumByName("ITEM_FIXO"))
+        ->get();
+        return view("menu.show",["menu"=> $menu,"items"=> $menuItems,"fixedItems"=> $menuFixedItems]);
     }
 
     /**
