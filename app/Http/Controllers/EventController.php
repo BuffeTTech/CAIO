@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FoodCategory;
+use App\Enums\MatherialType;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Address;
@@ -164,6 +166,45 @@ class EventController extends Controller
         if(!$event) dd("Evento nao encontrado");
 
         return view('event.checklist', compact('event'));
+    }
+    public function shopping_list(Request $request) {
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) dd("Evento nao encontrado");
+
+
+        $eventItems = $this->menu_event_has_item
+            ->where('menu_event_id', $id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodCategory::ITEM_INSUMO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
+            ->get();
+
+
+        return view('event.shopping_list', ['event'=>$event,"eventItems"=>$eventItems]);
+    }
+
+    public function equipment_list(Request $request) {
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) dd("Evento nao encontrado");
+
+
+        $eventEquipments = $this->menu_event_has_item
+        ->where('menu_event_id', $id)
+        ->whereHas('item.matherials.matherial', function ($query) { // Correção aqui
+            $query->where('category', MatherialType::EQUIPMENT->name);
+        })
+        ->with(['item.matherials.matherial']) // Garantindo que os dados sejam carregados corretamente
+        ->get();
+            return view('event.equipment_list', ['event'=>$event,"eventEquipments"=>$eventEquipments]);
+
     }
 
     public function check_ingredient(Request $request) {

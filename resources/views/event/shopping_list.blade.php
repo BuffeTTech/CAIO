@@ -50,14 +50,13 @@
                             <th class="py-2 px-4 text-center">QTD</th>
                             <th class="py-2 px-4">Ingredientes</th>
                             <th class="py-2 px-4 text-center">✔</th>
-                            <th class="py-2 px-4 text-center">QTD</th>
-                            <th class="py-2 px-4">Equipamentos</th>
                             <th class="py-2 px-4 text-center">✔</th>
-                            <th class="py-2 px-4 text-center">Geral</th>
+
+
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($event->menu_event->items as $key => $menuItem)
+                        @foreach ($eventItems as $key => $menuItem)
                             @php 
                                 $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
                                 $maxRows = $maxRows == 0 ? 1 : $maxRows;
@@ -80,23 +79,6 @@
                                                 @csrf
                                                 @method('patch')
                                                 <input type="checkbox" name="check" {{ $menuItem->ingredients[$i]->checked_at != null ? "checked" : ""}}>
-                                            </form>
-                                        @endif
-                                    </td>
-                                    <td class="py-2 px-4 text-center align-top">
-                                        <form action="">
-                                            {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
-                                        </form>
-                                    </td>
-                                    <td class="py-2 px-4 align-top">
-                                        {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
-                                    </td>
-                                    <td class="py-2 px-4 text-center align-top border-r border-gray-200">
-                                        @if (isset($menuItem->matherials[$i]))
-                                            <form action="{{ route('event.checklist.check_matherial', ['event_id'=>$event->id, 'matherial_id'=>$menuItem->matherials[$i]->matherial_id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
-                                                @csrf
-                                                @method('patch')
-                                                <input type="checkbox" name="check" {{ $menuItem->matherials[$i]->checked_at != null ? "checked" : ""}}>
                                             </form>
                                         @endif
                                     </td>
