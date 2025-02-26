@@ -14,8 +14,6 @@ Route::get('/', function () {
 });
 
 // Menu
-Route::get('/menu',  [MenuController::class, 'index']);
-Route::get('/menu/{menu_id}',  [MenuController::class, 'show'])->name('menu.show');
 Route::get('/menu/{menu_id}/item/',  [MenuController::class, 'add_item_to_menu'])->name('menu.add_item_to_menu');
 Route::post('/menu/{menu_id}/item',  [MenuController::class, 'store_item_to_menu'])->name('menu.store_item_to_menu');
 Route::delete('/menu/{menu_id}/item/{item_id}',  [MenuController::class, 'remove_item_from_menu'])->name('menu.remove_item_from_menu');

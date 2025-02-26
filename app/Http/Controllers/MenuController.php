@@ -27,11 +27,12 @@ class MenuController extends Controller
      */
     public function index()
     {
-        $menus = $this->menu->all();
-        $items =$this->items->where('type',FoodCategory::getEnumByName("ITEM_INSUMO"))->get();
-        $fixedItems =$this->items->where('type',FoodCategory::getEnumByName("ITEM_FIXO"))->get();
+        $menus = $this->menu->with([
+            // 'items.item.ingredients.ingredient',
+            // 'items.item.matherials.matherial',
+        ])->get();
 
-        return view('menu.index', compact('menus'));
+        return response()->json($menus);
     }
 
     /**
@@ -56,17 +57,34 @@ class MenuController extends Controller
     public function show(Request $request)
     {
         // dd($request);
-        $menu = $this->menu->find($request->menu_id);
-        $items = $this->menu_has_item->where('menu_id', $menu->id)->get();
-        $itemIds = $items->pluck('item_id');
-        $menuItems = Item::whereIn('id', $itemIds)
-            ->where('type', FoodCategory::getEnumByName("ITEM_INSUMO"))
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
+        }
+        $fixedItems = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodCategory::ITEM_FIXO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
             ->get();
-            
-        $menuFixedItems = Item::whereIn('id', $itemIds)
-        ->where('type', FoodCategory::getEnumByName("ITEM_FIXO"))
-        ->get();
-        return view("menu.show",["menu"=> $menu,"items"=> $menuItems,"fixedItems"=> $menuFixedItems]);
+
+        $menuItems = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodCategory::ITEM_INSUMO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
+            ->get();
+
+
+        return response()->json(["fixed"=>$fixedItems, "common"=>$menuItems]);
     }
 
     /**
