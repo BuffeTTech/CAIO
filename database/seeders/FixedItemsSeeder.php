@@ -29,13 +29,13 @@ class FixedItemsSeeder extends Seeder
         $sheetsNames = [
             'COMIDA BOTECO',
             'FEIJOADA',
-            'ARRAIÁ',
-            'FATIADOS PADRÃO',
+            'FESTA JUNINA',
+            'PADRÃO BERNARDINOS',
             'NATAL',
-            'FATIADOS PREMIUM',
+            'PREMIUM',
             'PERSONALIZADO',
-            'ESPETINHOS',
-            //'KIDS',
+            'ESPETOS',
+            'KIDS',
             'ESBOÇO NOVO CHECKLIST',
             'SUPER PREMIUM'
         ];
@@ -49,7 +49,7 @@ class FixedItemsSeeder extends Seeder
             56,
             24,
             39,
-            //37,
+            37,
             142,
             29
         ];
@@ -65,6 +65,9 @@ class FixedItemsSeeder extends Seeder
         for($i = 0;$i <= 9;$i++){
             $menu = $this->menu->where('name', $sheetsNames[$i])->first();
             // Variável para guardar a categoria atual
+            if(!$menu){
+            echo $sheetsNames[$i] . " não importado\n";
+            }
             $currentCategory = null;
             $worksheet = $spreadsheet->getSheetByName($sheetsNames[$i]);
             if ($worksheet === null) {
@@ -144,8 +147,6 @@ class FixedItemsSeeder extends Seeder
                         "item_id" => $item->id,
                         "menu_id" => $menu->id,
                     ]);
-                } else {
-                    continue;
                 }
                 // Agora insira no banco de dados (exemplo genérico)
                 // Se estiver usando PDO, por exemplo:
