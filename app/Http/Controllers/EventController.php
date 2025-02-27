@@ -215,8 +215,7 @@ class EventController extends Controller
             'item.matherials.matherial'
         ])
         ->get();
-        dd($eventFixedItems);   
-
+        
             return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
 
     }
