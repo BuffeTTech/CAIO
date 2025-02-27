@@ -74,20 +74,20 @@ class IngredientController extends Controller
     {
         $ingredient = $this->ingredient->find($request->id);
         if(!$ingredient) {
-            return back()->withErrors(['ingredient'=> "Ingrediente não existe"]);
+            return response()->json(["data"=>"Invalid ingredient id"], 404);
         }
         $item = $this->items->find($request->item_id);
         if(!$item) {
-            return back()->withErrors(['item'=> "Item não existe"]);
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
 
         $item_has_ingredient = $this->item_has_ingredient->where('ingredient_id', $ingredient->id)
                                                 ->where('item_id', $item->id)->get()->first();
         if(!$item_has_ingredient) {
-            return back()->withErrors(['item_ingredient'=> "Relacionamento não existe"]);
+            return response()->json(["data"=>"Invalid relationship"], 404);
         }
         $item_has_ingredient->delete();
 
-        return back()->with('message', "Ingrediente deletado com sucesso!");
+        return response()->json('deletado com sucesso!');
     }
 }
