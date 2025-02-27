@@ -41,7 +41,10 @@
                 <a href="{{route('event.equipment_list', ['event_id'=>$event->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Lista dos Equipamentos</a>
 
                 <h1 class="text-2xl font-bold text-gray-800 mb-3">{{ $event->menu->name }}</h1>
-                
+                <br>
+
+                <h1 class="text-2xl font-bold text-gray-500 mb-3">Equipamentos e Utensilios</h1>
+
                 <!-- Tabela de Itens -->
                 <table class="w-full text-left text-sm text-gray-800">
                     <thead class="bg-gray-50">
@@ -50,13 +53,16 @@
                             <th class="py-2 px-4 text-center">QTD</th>
                             <th class="py-2 px-4">Equipamento Necessário</th>
                             <th class="py-2 px-4 text-center">✔</th>
+                            <th class="py-2 px-4 text-center">QTD</th>
+                            <th class="py-2 px-4">Utensílio Necessário</th>
+
                             <th class="py-2 px-4 text-center">✔</th>
 
 
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($eventEquipments as $key => $menuItem)
+                        @foreach ($eventItems as $key => $menuItem)
                             @php 
                                 $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
                                 $maxRows = $maxRows == 0 ? 1 : $maxRows;
@@ -67,13 +73,17 @@
                             @if ($i == 0)
                                 <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
                             @endif
+                            {{-- @dd($menuItem->item->matherials) --}}
                             <td class="py-2 px-4 text-center align-top">
-                                <form action="">
-                                    {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
-                                </form>
+                                @if(isset($menuItem->item->matherials[$i]->matherial) && $menuItem->item->matherials[$i]->category == App\Enums\MatherialType::EQUIPMENT->name)
+                                    {{ $menuItem->item->matherials[$i]->matherial->quantity ?? '' }}
+                                @endif
                             </td>
                             <td class="py-2 px-4 align-top">
-                                {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
+                                @if(isset($menuItem->item->matherials[$i]->matherial) && $menuItem->item->matherials[$i]->matherial->category == App\Enums\MatherialType::EQUIPMENT->name)
+
+                                    {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
+                                    @endif
                             </td>
                             <td class="py-2 px-4 text-center align-top border-r border-gray-200">
                                 @if (isset($menuItem->matherials[$i]))
@@ -84,6 +94,17 @@
                                     </form>
                                 @endif
                             </td>
+                            <td class="py-2 px-4 text-center align-top">
+                                @if(isset($menuItem->item->matherials[$i]->matherial) && $menuItem->item->matherials[$i]->matherial->category == App\Enums\MatherialType::TOOL->name)
+                                        {{ $menuItem->item->matherials[$i]->quantity ?? '' }}
+                                @endif
+                                </td>
+                                <td class="py-2 px-4 align-top">
+                                @if(isset($menuItem->item->matherials[$i]->matherial) && $menuItem->item->matherials[$i]->matherial->category == App\Enums\MatherialType::TOOL->name)
+
+                                        {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
+                                @endif
+                                </td>
                             @if ($i == 0)
                                 <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
                                     <form action="{{ route('event.checklist.check_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
@@ -100,6 +121,51 @@
                             @endif
                         </tr>
                     @endfor
+                        @endforeach
+                    </tbody>
+                </table>
+
+
+                <h1 class="text-2xl font-bold text-gray-500 mb-3">Itens Fixos</h1>
+                <!-- Tabela de Itens -->
+                <table class="w-full text-left text-sm text-gray-800">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="py-2 px-4">Item</th>
+                            <th class="py-2 px-4 text-center">QTD</th>
+                            <th class="py-2 px-4 text-center">✔</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($eventFixedItems as $key => $menuItem)
+                            @php 
+                                $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
+                                $maxRows = $maxRows == 0 ? 1 : $maxRows;
+                            @endphp
+                    
+                        <tr class="border-b border-gray-200">
+                                <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
+                            {{-- @dd($menuItem->item->matherials) --}}
+                            <td class="py-2 px-4 text-center align-top">
+                                    {{ $menuItem->item->quantity ?? '' }}
+                            </td>
+                            <td class="py-2 px-4 align-top">
+                                    {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
+                            </td>
+                                <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
+                                    <form action="{{ route('event.checklist.check_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
+                                        @csrf
+                                        @method('patch')
+                                        <input type="checkbox" name="check" {{ $menuItem->checked_at != null ? "checked" : ""}}>
+                                    </form>
+                                    <form action="{{ route('event.checklist.delete_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" method="post">
+                                        @csrf
+                                        @method('delete')
+                                        <button type="submit" title="Deletar item {{ $menuItem->item->name }} (somente do cardapio do cliente)">❌</button>
+                                    </form>
+                                </td>
+                        </tr>
                         @endforeach
                     </tbody>
                 </table>

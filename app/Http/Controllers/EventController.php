@@ -194,16 +194,30 @@ class EventController extends Controller
 
         $event = $this->event->find($id);
         if(!$event) dd("Evento nao encontrado");
-
-
-        $eventEquipments = $this->menu_event_has_item
+        $eventItems = $this->menu_event_has_item
         ->where('menu_event_id', $id)
-        ->whereHas('item.matherials.matherial', function ($query) { // Correção aqui
-            $query->where('category', MatherialType::EQUIPMENT->name);
+        ->whereHas('item', function($query) {
+            $query->where('type', FoodCategory::ITEM_INSUMO->name);
         })
-        ->with(['item.matherials.matherial']) // Garantindo que os dados sejam carregados corretamente
+        ->with([
+            'item.ingredients.ingredient',
+            'item.matherials.matherial'
+        ])
         ->get();
-            return view('event.equipment_list', ['event'=>$event,"eventEquipments"=>$eventEquipments]);
+
+        $eventFixedItems = $this->menu_event_has_item
+        ->where('menu_event_id', $id)
+        ->whereHas('item', function($query) {
+            $query->where('type', FoodCategory::ITEM_FIXO->name);
+        })
+        ->with([
+            'item.ingredients.ingredient',
+            'item.matherials.matherial'
+        ])
+        ->get();
+        dd($eventFixedItems);   
+
+            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
 
     }
 

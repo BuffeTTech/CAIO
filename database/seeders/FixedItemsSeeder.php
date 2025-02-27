@@ -64,6 +64,8 @@ class FixedItemsSeeder extends Seeder
 
         for($i = 0;$i <= 9;$i++){
             $menu = $this->menu->where('name', $sheetsNames[$i])->first();
+            // if($menu->id == 1)
+            // echo "teste";
             // Variável para guardar a categoria atual
             if(!$menu){
             echo $sheetsNames[$i] . " não importado\n";
@@ -142,7 +144,7 @@ class FixedItemsSeeder extends Seeder
                     "unit" => 'unid'
                 ]);
 
-                if($menu != null){
+                if($menu){
                     $menuItem = MenuHasItem::create([
                         "item_id" => $item->id,
                         "menu_id" => $menu->id,
