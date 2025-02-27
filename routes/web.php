@@ -14,8 +14,7 @@ Route::get('/', function () {
 });
 
 // Menu
-Route::get('/menu/{menu_id}/item/',  [MenuController::class, 'add_item_to_menu'])->name('menu.add_item_to_menu');
-Route::post('/menu/{menu_id}/item',  [MenuController::class, 'store_item_to_menu'])->name('menu.store_item_to_menu');
+
 
 // Evento
 Route::get('/event', [EventController::class, 'index'])->name('event.index');

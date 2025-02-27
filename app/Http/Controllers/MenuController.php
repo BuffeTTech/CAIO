@@ -114,37 +114,38 @@ class MenuController extends Controller
     }
 
     public function store_item_to_menu(Request $request) {
-        $menu = $this->menu->find($request->menu_id);
-        if (!$menu) {
-            dd("Menu não encontrado");
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
         }
 
         $item = $this->items->find($request->item_id);
-        if (!$item) {
-            dd("Item não encontrado");
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
+        
         $item_exists = $this->menu_has_item->where('item_id', $item->id)
                                     ->where('menu_id', $menu->id)
                                     ->get()
                                     ->first();
         
         if($item_exists) {
-            return dd("Este item já está no menu");
+            return response()->json(["data"=>"Item was already in menu"], 409);
         }
 
-        $item = $this->menu_has_item->create([
-            "menu_id"=>$request->menu_id,
-            "item_id"=>$request->item_id
+        $relation = $this->menu_has_item->create([
+            "menu_id"=>$menu->id,
+            "item_id"=>$item->id
         ]);
 
-        return redirect()->back();
+        return response()->json("",201);
     }
 
     public function add_item_to_menu(Request $request) {
         // Recupera o menu
-        $menu = $this->menu->find($request->menu_id);
-        if (!$menu) {
-            dd("Menu não encontrado");
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
         }
 
         // Inicializa a variável $items
@@ -161,8 +162,10 @@ class MenuController extends Controller
                 ->paginate(10)
                 ->withQueryString();
         }
+
+        return response()->json(['menu'=>$menu, 'items'=>$items]);
     
-        return view('menu.add_item', compact('menu', 'items'));
+        // return view('menu.add_item', compact('menu', 'items'));
     }
 
     public function remove_item_from_menu(Request $request) {
