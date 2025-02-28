@@ -131,6 +131,7 @@
                 <table class="w-full text-left text-sm text-gray-800">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="py-2 px-4">Categoria</th>
                             <th class="py-2 px-4">Item</th>
                             <th class="py-2 px-4 text-center">QTD</th>
                             <th class="py-2 px-4 text-center">✔</th>

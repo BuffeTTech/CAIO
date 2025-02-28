@@ -173,7 +173,6 @@ class EventController extends Controller
 
         $event = $this->event->find($id);
         if(!$event) dd("Evento nao encontrado");
-
         $eventIngredientsByCategory = [];
 
         foreach ($event->menu_event->items as $menuItem) {
@@ -244,6 +243,28 @@ class EventController extends Controller
             'item.matherials.matherial'
         ])
         ->get();
+
+        
+        foreach ($eventFixedItems as $fixedItem) {
+                $category = $fixedItem->category; // Pegando a categoria do ingrediente
+                
+                if ($category) {
+                    // Se a categoria ainda não existir no array, cria um novo espaço para ela
+                    if (!isset($eventFixedItemsbyCategory[$category])) {
+                        $eventFixedItemsbyCategory[$category] = (object) [
+                            'fixedItems' => []
+                        ];
+                    }
+                    $itemExists = false;
+                    foreach ($eventFixedItemsbyCategory[$category]->ingredients as $itemIngredient) {
+                        if($fixedItem == $itemIngredient)
+                        $itemExists = true;
+                    }
+                    // Adiciona o ingrediente ao grupo da categoria correspondente
+                    if (!$itemExists)
+                    $eventFixedItemsbyCategory[$category]->ingredients[] = $fixedItem;
+                }
+        }
 
             return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
     }
