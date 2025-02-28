@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Enums\MatherialType;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
@@ -173,11 +174,37 @@ class EventController extends Controller
         $event = $this->event->find($id);
         if(!$event) dd("Evento nao encontrado");
 
+        $eventIngredientsByCategory = [];
+
+        foreach ($event->menu_event->items as $menuItem) {
+            foreach ($menuItem->ingredients as $eventIngredient) {
+                $category = $eventIngredient->ingredient->category; // Pegando a categoria do ingrediente
+                
+                if ($category) {
+
+                    // Se a categoria ainda não existir no array, cria um novo espaço para ela
+                    if (!isset($eventIngredientsByCategory[$category])) {
+                        $eventIngredientsByCategory[$category] = (object) [
+                            'ingredients' => []
+                        ];
+                    }
+                    $itemExists = false;
+                    foreach ($eventIngredientsByCategory[$category]->ingredients as $itemIngredient) {
+                        if($eventIngredient->ingredient == $itemIngredient)
+                        $itemExists = true;
+                    }
+                    // Adiciona o ingrediente ao grupo da categoria correspondente
+                    if (!$itemExists)
+                    $eventIngredientsByCategory[$category]->ingredients[] = $eventIngredient->ingredient;
+                }
+            }
+        }
+        // dd($eventIngredientsByCategory);
 
         $eventItems = $this->menu_event_has_item
             ->where('menu_event_id', $id)
             ->whereHas('item', function($query) {
-                $query->where('type', FoodCategory::ITEM_INSUMO->name);
+                $query->where('type', FoodType::ITEM_INSUMO->name);
             })
             ->with([
                 'item.ingredients.ingredient',
@@ -185,8 +212,10 @@ class EventController extends Controller
             ])
             ->get();
 
+        // $eventIngredients = $this->ingredient->where('menu_event_id', $id)->get();
 
-        return view('event.shopping_list', ['event'=>$event,"eventItems"=>$eventItems]);
+
+        return view('event.shopping_list', ['event'=>$event,"eventItems"=>$eventItems,"eventIngredients"=>$eventIngredientsByCategory]);
     }
 
     public function equipment_list(Request $request) {
@@ -197,7 +226,7 @@ class EventController extends Controller
         $eventItems = $this->menu_event_has_item
         ->where('menu_event_id', $id)
         ->whereHas('item', function($query) {
-            $query->where('type', FoodCategory::ITEM_INSUMO->name);
+            $query->where('type',FoodType::ITEM_INSUMO->name);
         })
         ->with([
             'item.ingredients.ingredient',
@@ -208,17 +237,23 @@ class EventController extends Controller
         $eventFixedItems = $this->menu_event_has_item
         ->where('menu_event_id', $id)
         ->whereHas('item', function($query) {
-            $query->where('type', FoodCategory::ITEM_FIXO->name);
+            $query->where('type',FoodType::ITEM_FIXO->name);
         })
         ->with([
             'item.ingredients.ingredient',
             'item.matherials.matherial'
         ])
         ->get();
-        
-            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
 
+            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
     }
+
+    // public function change_catalog(Request $request) {
+    //     $id = $request->event_id;
+    //     $request->changeViewMode = !$request->changeViewMode;
+
+    //     return back()->with('changeViewMode');
+    // }
 
     public function check_ingredient(Request $request) {
         $check = $request->check ?? false;

@@ -18,11 +18,36 @@ enum FoodCategory: string {
     case CANAPES = "CANAPÉS";
     case PALITINHOS = "PALITINHOS";
     case LANCHES_FRIOS = "LANCHES FRIOS";
-    case ITEM_FIXO = 'ITEM_FIXO';
-    case ITEM_INSUMO = 'ITEM_INSUMO';
     case LIMPEZA = "LIMPEZA";
     case DESCARTAVEL = "DESCARTAVEL";
     case TEMPERO = "TEMPERO";
     case UTENSILIO = "UTENSILIO";
     case BEBIDA = "BEBIDA";
+
+    public static function foodItems(): array {
+        return [
+            self::ENTRADAS,
+            self::GUARNICOES,
+            self::ASSADOS,
+            self::SALADAS,
+            self::BEBIDAS,
+            self::SOBREMESA,
+            self::FRUTAS,
+            self::DOCES,
+            self::FRIOS_OUTROS,
+            self::CANAPES,
+            self::PALITINHOS,
+            self::LANCHES_FRIOS,
+        ];
+    }
+
+    public static function nonFoodItems(): array {
+        return [
+            self::LIMPEZA,
+            self::DESCARTAVEL,
+            self::TEMPERO,
+            self::UTENSILIO,
+            self::BEBIDA,
+        ];
+    }
 }

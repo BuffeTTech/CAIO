@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Models\FixedItems;
 use App\Enums\FixedItemsCategory;
 use App\Models\Menu\Item;
@@ -53,7 +54,7 @@ class FixedItemsSeeder extends Seeder
             142,
             29
         ];
-        $fixedItemEnum = FoodCategory::getEnumByName("ITEM_FIXO");
+        $fixedItemEnum = FoodType::getEnumByName("ITEM_FIXO");
         $inputFileName = 'database/seeders/CHEKLIST 2024.xlsx';
 
         // Carrega a planilha

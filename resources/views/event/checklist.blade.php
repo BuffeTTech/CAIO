@@ -33,12 +33,26 @@
                     <p class="text-sm">{{ $event->address->country }}</p>
                     <p class="text-sm font-medium text-gray-700">CEP: {{ $event->address->zipcode }}</p>
                 </div>
-
+                <br>
                 <a href="{{route('event.add_item_to_checklist', ['event_id'=>$event->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Adicionar item</a>
 
                 <a href="{{route('event.shopping_list', ['event_id'=>$event->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Lista de Compras</a>
 
                 <a href="{{route('event.equipment_list', ['event_id'=>$event->id])}}" class="rounded-md bg-slate-800 py-2 px-4 border border-transparent text-center text-sm text-white transition-all shadow-md hover:shadow-lg focus:bg-slate-700 focus:shadow-none active:bg-slate-700 hover:bg-slate-700 active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none w-50">Lista dos Equipamentos</a>
+                @php 
+                    $status = false;
+                    $menuEventItems = $event->menu_event->items;
+                    $menuEventCategories = App\Enums\FoodCategory::foodItems();
+                @endphp
+                <div id="status-container" data-status="<?= $status ? 'true' : 'false' ?>">
+                    <p>Status: <span id="status-text"><?= $status ? 'Ativo' : 'Inativo' ?></span></p>
+                    <button onclick="toggleViewMode()" class="px-4 py-2 bg-blue-500 text-white rounded">
+                        Ver por Categoria
+                    </button>
+                </div>
+                <br>
+                <br>
+
 
                 <h1 class="text-2xl font-bold text-gray-800 mb-3">{{ $event->menu->name }}</h1>
                 
@@ -46,7 +60,7 @@
                 <table class="w-full text-left text-sm text-gray-800">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="py-2 px-4">Item</th>
+                            <th class="py-2 px-4">{{$status ? 'Categoria':'Item'}}</th>
                             <th class="py-2 px-4 text-center">QTD</th>
                             <th class="py-2 px-4">Ingredientes</th>
                             <th class="py-2 px-4 text-center">✔</th>
@@ -57,7 +71,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($event->menu_event->items as $key => $menuItem)
+                        @foreach ($menuEventItems as $key => $menuItem)
                             @php 
                                 $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
                                 $maxRows = $maxRows == 0 ? 1 : $maxRows;
@@ -134,3 +148,17 @@
         </script>
     </body>
 </html>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    let status = document.getElementById('status-container').getAttribute('data-status') === 'true';
+
+    function toggleViewMode() {
+        status = !status;
+        document.getElementById('status-text').innerText = status ? 'Ativo' : 'Inativo';
+    }
+
+    // Adiciona o evento ao botão diretamente, evitando erro caso ele não seja encontrado
+    document.querySelector("button[onclick='toggleViewMode()']")?.addEventListener("click", toggleViewMode);
+});
+</script>
