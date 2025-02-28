@@ -17,7 +17,7 @@ Route::get('/', function () {
 
 
 // Evento
-Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
+// Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
 
 Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
 Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');
