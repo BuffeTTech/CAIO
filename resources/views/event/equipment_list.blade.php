@@ -141,32 +141,41 @@
                     <tbody>
                         @foreach ($eventFixedItems as $key => $menuItem)
                             @php 
-                                $maxRows = max(count($menuItem->item->ingredients), count($menuItem->item->matherials));
+                                $maxRows = count($menuItem->fixedItems);
                                 $maxRows = $maxRows == 0 ? 1 : $maxRows;
                             @endphp
-                    
-                        <tr class="border-b border-gray-200">
-                                <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $menuItem->item->name }}</td>
-                            {{-- @dd($menuItem->item->matherials) --}}
-                            <td class="py-2 px-4 text-center align-top">
-                                    {{ $menuItem->item->quantity ?? '' }}
-                            </td>
-                            <td class="py-2 px-4 align-top">
-                                    {{ $menuItem->item->matherials[$i]->matherial->name ?? '' }}
-                            </td>
-                                <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
-                                    <form action="{{ route('event.checklist.check_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" class="form-checklist" method="post">
-                                        @csrf
-                                        @method('patch')
-                                        <input type="checkbox" name="check" {{ $menuItem->checked_at != null ? "checked" : ""}}>
-                                    </form>
-                                    <form action="{{ route('event.checklist.delete_item', ['event_id'=>$event->id, "item_id"=>$menuItem->item->id])}}" method="post">
-                                        @csrf
-                                        @method('delete')
-                                        <button type="submit" title="Deletar item {{ $menuItem->item->name }} (somente do cardapio do cliente)">❌</button>
-                                    </form>
-                                </td>
-                        </tr>
+                    @for ($i = 0; $i < $maxRows; $i++)
+                    <tr class="border-b border-gray-200">
+                        @if ($i == 0)
+                            <td class="py-2 px-4 font-medium align-top" rowspan="{{ $maxRows }}">{{ $key }}</td>
+                        @endif
+                        <td class="py-2 px-4 text-center align-top">{{ $menuItem->fixedItems[$i]->quantity ?? '' }}</td>
+                        <td class="py-2 px-4 align-top">{{ $menuItem->fixedItems[$i]->name ?? '' }}</td>
+                        <td class="py-2 px-4 text-center align-top border-r border-gray-200">
+                            @if (isset($menuItem->fixedItems[$i]))
+                                <form action="{{ route('event.checklist.check_ingredient', ['event_id'=>$event->id, 'ingredient_id'=>$menuItem->fixedItems[$i]->id, 'item_id'=>$menuItem->fixedItems[$i]->id])}}" class="form-checklist" method="post">
+                                    @csrf
+                                    @method('patch')
+                                    <input type="checkbox" name="check" {{ $menuItem->fixedItems[$i]->checked_at != null ? "checked" : ""}}>
+                                </form>
+                            @endif
+                        </td>
+                        @if ($i == 0)
+                            {{-- <td class="py-2 px-4 text-center align-top" rowspan="{{ $maxRows }}">
+                                <form action="{{ route('event.checklist.check_item', ['event_id'=>$event->id, 'item_id'=>$menuItem->fixedItems[$i]->id])}}" class="form-checklist" method="post">
+                                    @csrf
+                                    @method('patch')
+                                    <input type="checkbox" name="check" {{ $menuItem->checked_at != null ? "checked" : ""}}>
+                                </form>
+                                <form action="{{ route('event.checklist.delete_item', ['event_id'=>$event->id, 'item_id'=>$menuItem->item->id])}}" method="post">
+                                    @csrf
+                                    @method('delete')
+                                    <button type="submit" title="Deletar item {{ $menuItem->item->name }} (somente do cardapio do cliente)">❌</button>
+                                </form>
+                            </td> --}}
+                        @endif
+                    </tr>
+                @endfor
                         @endforeach
                     </tbody>
                 </table>

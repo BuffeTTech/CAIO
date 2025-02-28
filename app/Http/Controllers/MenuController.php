@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
 use App\Models\Menu\Item;
@@ -28,8 +29,8 @@ class MenuController extends Controller
     public function index()
     {
         $menus = $this->menu->all();
-        $items =$this->items->where('type',FoodCategory::getEnumByName("ITEM_INSUMO"))->get();
-        $fixedItems =$this->items->where('type',FoodCategory::getEnumByName("ITEM_FIXO"))->get();
+        $items =$this->items->where('type',FoodType::getEnumByName("ITEM_INSUMO"))->get();
+        $fixedItems =$this->items->where('type',FoodType::getEnumByName("ITEM_FIXO"))->get();
 
         return view('menu.index', compact('menus'));
     }

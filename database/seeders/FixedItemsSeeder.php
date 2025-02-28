@@ -65,9 +65,8 @@ class FixedItemsSeeder extends Seeder
 
         for($i = 0;$i <= 9;$i++){
             $menu = $this->menu->where('name', $sheetsNames[$i])->first();
-            // if($menu->id == 1)
-            // echo "teste";
-            // Variável para guardar a categoria atual
+
+            //Variável para guardar a categoria atual
             if(!$menu){
             echo $sheetsNames[$i] . " não importado\n";
             }
@@ -127,7 +126,6 @@ class FixedItemsSeeder extends Seeder
                 $qtd = $colB;     // custo do item
                 $unit = '';        // se precisar capturar unidade de alguma coluna
                 $consumed = 0;     // se não tiver na planilha, pode definir zero ou outra lógica
-
                 // Se não tiver nada em $name, significa linha em branco ou sem dados
                 if (empty($name)) {
                     continue;

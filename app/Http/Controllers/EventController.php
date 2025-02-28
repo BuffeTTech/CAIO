@@ -244,10 +244,9 @@ class EventController extends Controller
         ])
         ->get();
 
-        
+        $eventFixedItemsbyCategory = [];
         foreach ($eventFixedItems as $fixedItem) {
-                $category = $fixedItem->category; // Pegando a categoria do ingrediente
-                
+                $category = $fixedItem->item->category; // Pegando a categoria do ingrediente
                 if ($category) {
                     // Se a categoria ainda não existir no array, cria um novo espaço para ela
                     if (!isset($eventFixedItemsbyCategory[$category])) {
@@ -255,18 +254,18 @@ class EventController extends Controller
                             'fixedItems' => []
                         ];
                     }
-                    $itemExists = false;
-                    foreach ($eventFixedItemsbyCategory[$category]->ingredients as $itemIngredient) {
-                        if($fixedItem == $itemIngredient)
-                        $itemExists = true;
-                    }
+                    // $itemExists = false;
+                    // foreach ($eventFixedItemsbyCategory[$category]->fixedItems as $fixedItem) {
+                    //     if($fixedItem == $fixedItem)
+                    //     $itemExists = true;
+                    // }
                     // Adiciona o ingrediente ao grupo da categoria correspondente
-                    if (!$itemExists)
-                    $eventFixedItemsbyCategory[$category]->ingredients[] = $fixedItem;
+                    // if (!$itemExists)
+                    $eventFixedItemsbyCategory[$category]->fixedItems[] = $fixedItem->item;
                 }
         }
 
-            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItems]);
+            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
     }
 
     // public function change_catalog(Request $request) {
