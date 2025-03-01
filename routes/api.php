@@ -24,3 +24,6 @@ Route::post('/menu/{menu_slug}/item',  [MenuController::class, 'store_item_to_me
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
 Route::post('/event', [EventController::class, 'store'])->name('event.store');
 Route::get('/event/{event_id}',  [EventController::class, 'show'])->name('event.show');
+Route::get('/event/{event_id}/item/add',  [EventController::class, 'add_item_to_event'])->name('event.add_item_to_event');
+Route::post('/event/{event_id}/item',  [EventController::class, 'store_item_to_event'])->name('event.store_item_to_event');
+Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');

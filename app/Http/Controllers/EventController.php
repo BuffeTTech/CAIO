@@ -121,11 +121,13 @@ class EventController extends Controller
         //
     }
 
-    public function add_item_to_checklist(Request $request){
+    public function add_item_to_event(Request $request){
         $id = $request->event_id;
 
         $event = $this->event->find($id);
-        if(!$event) dd("Evento nao encontrado");
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
 
         $items = null;
     
@@ -141,31 +143,31 @@ class EventController extends Controller
                 ->withQueryString();
         }
 
-        return view('event.add_item_checklist', compact('event', 'items'));
+        return response()->json(['event'=>$event, 'items'=>$items]);
     }
-    public function store_item_to_checklist(Request $request){
+    public function store_item_to_event(Request $request){
         
         $event = $this->event->find($request->event_id);
-        if (!$event) {
-            dd("event não encontrado");
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
         }
 
         $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
-        if (!$menu_event) {
-            dd("menu não encontrado");
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
         }
 
         $item = $this->item->find($request->item_id);
-        if (!$item) {
-            dd("Item não encontrado");
+        if(!$event) {
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
         $item_exists = $this->menu_event_has_item->where('item_id', $item->id)
                                     ->where('menu_event_id', $menu_event->id)
                                     ->get()
                                     ->first();
         
-        if($item_exists) {
-            return dd("Este item já está no event");
+        if(!$event) {
+            return response()->json(["data"=>"Item was already on event"], 404);
         }
 
         $item = $this->menu_event_has_item->create([
@@ -174,16 +176,29 @@ class EventController extends Controller
             "checked_at"=>null
         ]);
 
-
-        return back();
+        return response()->json("",201);
     }
     public function checklist(Request $request) {
         $id = $request->event_id;
 
-        $event = $this->event->find($id);
-        if(!$event) dd("Evento nao encontrado");
+        $event = $this->event
+                    ->with('menu')
+                    ->with('client')
+                    ->with('address')
+                    ->with('menu_event.items.ingredients.ingredient')
+                    ->with('menu_event.items.matherials.matherial')
+                    ->with('menu_event.items.item')
+                    ->where('id', $id)
+                    ->get()
+                    ->first();
+                    // ->paginate($request->get('per_page', 5), ['*'], 'common', $request->get('page', 1));
+                    // ->find($id);
+        
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
 
-        return view('event.checklist', compact('event'));
+        return response()->json($event);
     }
     public function shopping_list(Request $request) {
         $id = $request->event_id;
