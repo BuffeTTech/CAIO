@@ -23,3 +23,4 @@ Route::post('/menu/{menu_slug}/item',  [MenuController::class, 'store_item_to_me
 # Event Routes
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
 Route::post('/event', [EventController::class, 'store'])->name('event.store');
+Route::get('/event/{event_id}',  [EventController::class, 'show'])->name('event.show');

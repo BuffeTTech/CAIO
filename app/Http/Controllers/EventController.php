@@ -77,9 +77,21 @@ class EventController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Event $event)
+    public function show(Request $request)
     {
-        //
+        $event = $this->event
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->where('id', $request->event_id)
+            ->get()
+            ->first();
+
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        
+        return response()->json($event);
     }
 
     /**
