@@ -14,18 +14,10 @@ Route::get('/', function () {
 });
 
 // Menu
-Route::get('/menu',  [MenuController::class, 'index']);
-Route::get('/menu/{menu_id}',  [MenuController::class, 'show'])->name('menu.show');
-Route::get('/menu/{menu_id}/item/',  [MenuController::class, 'add_item_to_menu'])->name('menu.add_item_to_menu');
-Route::post('/menu/{menu_id}/item',  [MenuController::class, 'store_item_to_menu'])->name('menu.store_item_to_menu');
-Route::delete('/menu/{menu_id}/item/{item_id}',  [MenuController::class, 'remove_item_from_menu'])->name('menu.remove_item_from_menu');
-Route::delete('/menu/items/{item_id}/ingredients/{id}',  [IngredientController::class, 'destroy'])->name('ingredient.destroy');
-Route::delete('/menu/items/{item_id}/matherial/{id}',  [MatherialController::class, 'destroy'])->name('matherial.destroy');
+
 
 // Evento
-Route::get('/event', [EventController::class, 'index'])->name('event.index');
-Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
-Route::post('/event/store', [EventController::class, 'store'])->name('event.store');
+// Route::get('/event/create', [EventController::class, 'create'])->name('event.create');
 
 Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
 Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');

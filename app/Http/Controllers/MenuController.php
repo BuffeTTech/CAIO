@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\FoodCategory;
 use App\Enums\FoodType;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
@@ -28,11 +27,12 @@ class MenuController extends Controller
      */
     public function index()
     {
-        $menus = $this->menu->all();
-        $items =$this->items->where('type',FoodType::getEnumByName("ITEM_INSUMO"))->get();
-        $fixedItems =$this->items->where('type',FoodType::getEnumByName("ITEM_FIXO"))->get();
+        $menus = $this->menu->with([
+            // 'items.item.ingredients.ingredient',
+            // 'items.item.matherials.matherial',
+        ])->get();
 
-        return view('menu.index', compact('menus'));
+        return response()->json($menus);
     }
 
     /**
@@ -57,17 +57,36 @@ class MenuController extends Controller
     public function show(Request $request)
     {
         // dd($request);
-        $menu = $this->menu->find($request->menu_id);
-        $items = $this->menu_has_item->where('menu_id', $menu->id)->get();
-        $itemIds = $items->pluck('item_id');
-        $menuItems = Item::whereIn('id', $itemIds)
-            ->where('type', FoodCategory::getEnumByName("ITEM_INSUMO"))
-            ->get();
-            
-        $menuFixedItems = Item::whereIn('id', $itemIds)
-        ->where('type', FoodCategory::getEnumByName("ITEM_FIXO"))
-        ->get();
-        return view("menu.show",["menu"=> $menu,"items"=> $menuItems,"fixedItems"=> $menuFixedItems]);
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
+        }
+        $fixedItems = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodType::ITEM_FIXO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
+            ->paginate($request->get('fixed_count', 5), ['*'], 'fixed', $request->get('fixed', 1));
+            // ->get();
+
+        $menuItems = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodType::ITEM_INSUMO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
+            ->paginate($request->get('common_count', 5), ['*'], 'common', $request->get('common', 1));
+            // ->get();
+
+
+        return response()->json(["fixed"=>$fixedItems, "common"=>$menuItems]);
     }
 
     /**
@@ -95,37 +114,38 @@ class MenuController extends Controller
     }
 
     public function store_item_to_menu(Request $request) {
-        $menu = $this->menu->find($request->menu_id);
-        if (!$menu) {
-            dd("Menu não encontrado");
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
         }
 
         $item = $this->items->find($request->item_id);
-        if (!$item) {
-            dd("Item não encontrado");
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
+        
         $item_exists = $this->menu_has_item->where('item_id', $item->id)
                                     ->where('menu_id', $menu->id)
                                     ->get()
                                     ->first();
         
         if($item_exists) {
-            return dd("Este item já está no menu");
+            return response()->json(["data"=>"Item was already in menu"], 409);
         }
 
-        $item = $this->menu_has_item->create([
-            "menu_id"=>$request->menu_id,
-            "item_id"=>$request->item_id
+        $relation = $this->menu_has_item->create([
+            "menu_id"=>$menu->id,
+            "item_id"=>$item->id
         ]);
 
-        return redirect()->back();
+        return response()->json("",201);
     }
 
     public function add_item_to_menu(Request $request) {
         // Recupera o menu
-        $menu = $this->menu->find($request->menu_id);
-        if (!$menu) {
-            dd("Menu não encontrado");
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
         }
 
         // Inicializa a variável $items
@@ -142,27 +162,30 @@ class MenuController extends Controller
                 ->paginate(10)
                 ->withQueryString();
         }
+
+        return response()->json(['menu'=>$menu, 'items'=>$items]);
     
-        return view('menu.add_item', compact('menu', 'items'));
+        // return view('menu.add_item', compact('menu', 'items'));
     }
 
     public function remove_item_from_menu(Request $request) {
-        $menu = $this->menu->find($request->menu_id);
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
         if(!$menu) {
-            return back()->withErrors(['menu'=> "Menu não existe"]);
+            return response()->json(["data"=>"Invalid menu slug"], 404);
         }
         $item = $this->items->find($request->item_id);
         if(!$item) {
-            return back()->withErrors(['item'=> "Item não existe"]);
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
         
         $menu_has_item = $this->menu_has_item->where('menu_id', $menu->id)
-                                             ->where('item_id', $item->id)->get()->first();
+        ->where('item_id', $item->id)->get()->first();
         if(!$menu_has_item) {
-            return back()->withErrors(['menu_has_item'=> "Relacionamento não existe"]);
+            return response()->json(["data"=>"Invalid relationship"], 404);
         }
         $menu_has_item->delete();
-
+        
+        return response()->json('deletado com sucesso!');
         return back()->with('message', "Material deletado com sucesso!");
     }
     

@@ -114,7 +114,7 @@ class ImportSheet implements ToCollection, WithChunkReading
                 return;
             }
 
-            $menu = Menu::firstOrCreate(['name' => $row_menu]);
+            $menu = Menu::firstOrCreate(['name' => $row_menu, 'slug'=>sanitize_string($row_menu)]);
             $item = Item::firstOrCreate([
                 "name" => $row_name,
             ], [

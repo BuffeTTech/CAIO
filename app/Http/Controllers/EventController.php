@@ -39,8 +39,13 @@ class EventController extends Controller
      */
     public function index()
     {
-        $events = $this->event->all();
-        return view('event.index',['events'=>$events]);
+        $events = $this->event
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->get();
+        return response()->json($events);
+        // return view('event.index',['events'=>$events]);
     }
 
     /**
@@ -69,15 +74,27 @@ class EventController extends Controller
         $ingredientService = new CreateMenuEventService();
         $ingredientService->handle($event, $menu);
 
-        return redirect()->back();
+        return response()->json($event, 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Event $event)
+    public function show(Request $request)
     {
-        //
+        $event = $this->event
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->where('id', $request->event_id)
+            ->get()
+            ->first();
+
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        
+        return response()->json($event);
     }
 
     /**

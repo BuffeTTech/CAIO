@@ -73,20 +73,20 @@ class MatherialController extends Controller
     {
         $matherial = $this->matherial->find($request->id);
         if(!$matherial) {
-            return back()->withErrors(['matherial'=> "Material não existe"]);
+            return response()->json(["data"=>"Invalid matherial id"], 404);
         }
         $item = $this->items->find($request->item_id);
         if(!$item) {
-            return back()->withErrors(['item'=> "Item não existe"]);
+            return response()->json(["data"=>"Invalid item id"], 404);
         }
 
         $item_has_matherial = $this->item_has_matherial->where('matherial_id', $matherial->id)
                                                 ->where('item_id', $item->id)->get()->first();
         if(!$item_has_matherial) {
-            return back()->withErrors(['item_matherial'=> "Relacionamento não existe"]);
+            return response()->json(["data"=>"Invalid relationship"], 404);
         }
         $item_has_matherial->delete();
 
-        return back()->with('message', "Material deletado com sucesso!");
+        return response()->json('deletado com sucesso!');
     }
 }
