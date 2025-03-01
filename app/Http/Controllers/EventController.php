@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\FoodCategory;
+use App\Enums\FoodType;
+use App\Enums\MatherialType;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use App\Models\Address;
@@ -165,6 +168,112 @@ class EventController extends Controller
 
         return view('event.checklist', compact('event'));
     }
+    public function shopping_list(Request $request) {
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) dd("Evento nao encontrado");
+        $eventIngredientsByCategory = [];
+
+        foreach ($event->menu_event->items as $menuItem) {
+            foreach ($menuItem->ingredients as $eventIngredient) {
+                $category = $eventIngredient->ingredient->category; // Pegando a categoria do ingrediente
+                
+                if ($category) {
+
+                    // Se a categoria ainda não existir no array, cria um novo espaço para ela
+                    if (!isset($eventIngredientsByCategory[$category])) {
+                        $eventIngredientsByCategory[$category] = (object) [
+                            'ingredients' => []
+                        ];
+                    }
+                    $itemExists = false;
+                    foreach ($eventIngredientsByCategory[$category]->ingredients as $itemIngredient) {
+                        if($eventIngredient->ingredient == $itemIngredient)
+                        $itemExists = true;
+                    }
+                    // Adiciona o ingrediente ao grupo da categoria correspondente
+                    if (!$itemExists)
+                    $eventIngredientsByCategory[$category]->ingredients[] = $eventIngredient->ingredient;
+                }
+            }
+        }
+        // dd($eventIngredientsByCategory);
+
+        $eventItems = $this->menu_event_has_item
+            ->where('menu_event_id', $id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodType::ITEM_INSUMO->name);
+            })
+            ->with([
+                'item.ingredients.ingredient',
+                'item.matherials.matherial'
+            ])
+            ->get();
+
+        // $eventIngredients = $this->ingredient->where('menu_event_id', $id)->get();
+
+
+        return view('event.shopping_list', ['event'=>$event,"eventItems"=>$eventItems,"eventIngredients"=>$eventIngredientsByCategory]);
+    }
+
+    public function equipment_list(Request $request) {
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) dd("Evento nao encontrado");
+        $eventItems = $this->menu_event_has_item
+        ->where('menu_event_id', $id)
+        ->whereHas('item', function($query) {
+            $query->where('type',FoodType::ITEM_INSUMO->name);
+        })
+        ->with([
+            'item.ingredients.ingredient',
+            'item.matherials.matherial'
+        ])
+        ->get();
+
+        $eventFixedItems = $this->menu_event_has_item
+        ->where('menu_event_id', $id)
+        ->whereHas('item', function($query) {
+            $query->where('type',FoodType::ITEM_FIXO->name);
+        })
+        ->with([
+            'item.ingredients.ingredient',
+            'item.matherials.matherial'
+        ])
+        ->get();
+
+        $eventFixedItemsbyCategory = [];
+        foreach ($eventFixedItems as $fixedItem) {
+                $category = $fixedItem->item->category; // Pegando a categoria do ingrediente
+                if ($category) {
+                    // Se a categoria ainda não existir no array, cria um novo espaço para ela
+                    if (!isset($eventFixedItemsbyCategory[$category])) {
+                        $eventFixedItemsbyCategory[$category] = (object) [
+                            'fixedItems' => []
+                        ];
+                    }
+                    // $itemExists = false;
+                    // foreach ($eventFixedItemsbyCategory[$category]->fixedItems as $fixedItem) {
+                    //     if($fixedItem == $fixedItem)
+                    //     $itemExists = true;
+                    // }
+                    // Adiciona o ingrediente ao grupo da categoria correspondente
+                    // if (!$itemExists)
+                    $eventFixedItemsbyCategory[$category]->fixedItems[] = $fixedItem->item;
+                }
+        }
+
+            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
+    }
+
+    // public function change_catalog(Request $request) {
+    //     $id = $request->event_id;
+    //     $request->changeViewMode = !$request->changeViewMode;
+
+    //     return back()->with('changeViewMode');
+    // }
 
     public function check_ingredient(Request $request) {
         $check = $request->check ?? false;

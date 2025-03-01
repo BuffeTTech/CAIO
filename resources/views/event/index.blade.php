@@ -39,7 +39,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($events as $event)  
+                            @foreach ($events as $event)
+                            {{-- @dd($event)   --}}
                                 <tr class="border-b border-gray-200">
                                     <td class="py-2 px-4 font-medium align-top">
                                         {{ $event->client->name}}

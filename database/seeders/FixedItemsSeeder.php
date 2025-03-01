@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Models\FixedItems;
 use App\Enums\FixedItemsCategory;
 use App\Models\Menu\Item;
@@ -53,7 +54,7 @@ class FixedItemsSeeder extends Seeder
             142,
             29
         ];
-        $fixedItemEnum = FoodCategory::getEnumByName("ITEM_FIXO");
+        $fixedItemEnum = FoodType::getEnumByName("ITEM_FIXO");
         $inputFileName = 'database/seeders/CHEKLIST 2024.xlsx';
 
         // Carrega a planilha
@@ -64,7 +65,8 @@ class FixedItemsSeeder extends Seeder
 
         for($i = 0;$i <= 9;$i++){
             $menu = $this->menu->where('name', $sheetsNames[$i])->first();
-            // Variável para guardar a categoria atual
+
+            //Variável para guardar a categoria atual
             if(!$menu){
             echo $sheetsNames[$i] . " não importado\n";
             }
@@ -124,7 +126,6 @@ class FixedItemsSeeder extends Seeder
                 $qtd = $colB;     // custo do item
                 $unit = '';        // se precisar capturar unidade de alguma coluna
                 $consumed = 0;     // se não tiver na planilha, pode definir zero ou outra lógica
-
                 // Se não tiver nada em $name, significa linha em branco ou sem dados
                 if (empty($name)) {
                     continue;
@@ -142,7 +143,7 @@ class FixedItemsSeeder extends Seeder
                     "unit" => 'unid'
                 ]);
 
-                if($menu != null){
+                if($menu){
                     $menuItem = MenuHasItem::create([
                         "item_id" => $item->id,
                         "menu_id" => $menu->id,
