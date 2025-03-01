@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
 use App\Models\Menu\Item;

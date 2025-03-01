@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodType;
 use App\Models\Menu\{Item, Menu, MenuHasItem};
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Illuminate\Support\Collection;
@@ -100,7 +101,7 @@ class ImportSheet implements ToCollection, WithChunkReading
 
     private function processRow($row)
     {
-        $itemEnum = FoodCategory::getEnumByName("ITEM_INSUMO");
+        $itemEnum = FoodType::getEnumByName("ITEM_INSUMO");
         try {
             $row_name = $row[0] ?? null;
             $row_category = isset($row[1]) ? explode("- ", $row[1])[1] : null;
