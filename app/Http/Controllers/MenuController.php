@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\FoodCategory;
 use App\Enums\FoodType;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
@@ -65,7 +64,7 @@ class MenuController extends Controller
         $fixedItems = $this->menu_has_item
             ->where('menu_id', $menu->id)
             ->whereHas('item', function($query) {
-                $query->where('type', FoodCategory::ITEM_FIXO->name);
+                $query->where('type', FoodType::ITEM_FIXO->name);
             })
             ->with([
                 'item.ingredients.ingredient',
@@ -77,7 +76,7 @@ class MenuController extends Controller
         $menuItems = $this->menu_has_item
             ->where('menu_id', $menu->id)
             ->whereHas('item', function($query) {
-                $query->where('type', FoodCategory::ITEM_INSUMO->name);
+                $query->where('type', FoodType::ITEM_INSUMO->name);
             })
             ->with([
                 'item.ingredients.ingredient',
