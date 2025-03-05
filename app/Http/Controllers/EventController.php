@@ -255,8 +255,9 @@ class EventController extends Controller
                     $query->where('type', FoodType::ITEM_INSUMO->name);
                 })
                 ->with([
-                    'item.ingredients.ingredient',
-                    'item.matherials.matherial'
+                    'item',
+                    'ingredients.ingredient',
+                    // 'item.matherials.matherial'
                 ])
                 ->get();
             return response()->json(['event'=>$event,"data"=>$eventItems, "type"=>$type]);
@@ -293,17 +294,28 @@ class EventController extends Controller
         $id = $request->event_id;
 
         $event = $this->event->find($id);
-        if(!$event) dd("Evento nao encontrado");
+        if(!$event) {
+            return response()->json(["data"=>"Invalid type"], 404);
+        }
         $eventItems = $this->menu_event_has_item
-        ->where('menu_event_id', $id)
-        ->whereHas('item', function($query) {
-            $query->where('type',FoodType::ITEM_INSUMO->name);
-        })
-        ->with([
-            'item.ingredients.ingredient',
-            'item.matherials.matherial'
-        ])
-        ->get();
+            ->where('menu_event_id', $id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodType::ITEM_INSUMO->name);
+            })
+            ->with([
+                'matherials.matherial'
+            ])
+            ->get();
+
+        $groupedItems = $eventItems->flatMap(function($menuItem) {
+            return $menuItem->matherials->map(function($matherial) use ($menuItem) {
+                return [
+                    'category' => $matherial->matherial->category,
+                    'menuItem' => $menuItem,
+                    // 'matherial' => $matherial->matherial
+                ];
+            });
+        })->groupBy('category');
 
         $eventFixedItems = $this->menu_event_has_item
         ->where('menu_event_id', $id)
@@ -311,10 +323,11 @@ class EventController extends Controller
             $query->where('type',FoodType::ITEM_FIXO->name);
         })
         ->with([
-            'item.ingredients.ingredient',
-            'item.matherials.matherial'
+            // 'item.ingredients.ingredient',
+            'matherials.matherial'
         ])
         ->get();
+
 
         $eventFixedItemsbyCategory = [];
         foreach ($eventFixedItems as $fixedItem) {
@@ -326,18 +339,11 @@ class EventController extends Controller
                             'fixedItems' => []
                         ];
                     }
-                    // $itemExists = false;
-                    // foreach ($eventFixedItemsbyCategory[$category]->fixedItems as $fixedItem) {
-                    //     if($fixedItem == $fixedItem)
-                    //     $itemExists = true;
-                    // }
-                    // Adiciona o ingrediente ao grupo da categoria correspondente
-                    // if (!$itemExists)
                     $eventFixedItemsbyCategory[$category]->fixedItems[] = $fixedItem->item;
                 }
         }
-
-            return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
+        return response()->json(['event'=>$event,"eventItems"=>$groupedItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
+        // return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
     }
 
     // public function change_catalog(Request $request) {
@@ -355,23 +361,29 @@ class EventController extends Controller
         $item = $this->item->find($request->item_id);
 
         $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
-        if(!$menu_event) dd("Evento nao encontrado");
+        if(!$menu_event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
 
         $menu_event_has_item = $this->menu_event_has_item->where('menu_event_id', $menu_event->id)
                                                          ->where('item_id', $item->id)->get()->first();
-        if(!$menu_event_has_item) dd("Item nao encontrado");
+        if(!$menu_event_has_item) {
+            return response()->json(["data"=>"Evento não encontrado"], 404);
+        }
         
 
         $menu_event_item_has_ingredient = $this->menu_event_item_has_ingredient->where('menu_event_has_items_id', $menu_event_has_item->id)
                                                                                ->where('ingredient_id', $ingredient->id)->get()->first();
-        if(!$menu_event_item_has_ingredient) dd("Ingrediente nao encontrado");
+        if(!$menu_event_item_has_ingredient) {
+            return response()->json(["data"=>"Ingredientes não encontrados"], 404);
+        }
 
         $menu_event_item_has_ingredient->update([
             "checked_at"=>$check == true ? now() : null
         ]);
 
         $this->is_checked_all_items($menu_event_has_item);
-        return back()->with("message", 'Alterado com sucesso');
+        return response()->json("", 201);
     }
     public function check_matherial(Request $request) {
         $check = $request->check ?? false;
@@ -381,22 +393,25 @@ class EventController extends Controller
         $item = $this->item->find($request->item_id);
 
         $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
-        if(!$menu_event) dd("Evento nao encontrado");
+        if(!$menu_event) 
+        return response()->json("Evento nao encontrado");
 
         $menu_event_has_item = $this->menu_event_has_item->where('menu_event_id', $menu_event->id)
                                                          ->where('item_id', $item->id)->get()->first();
-        if(!$menu_event_has_item) dd("Item nao encontrado");
+        if(!$menu_event_has_item) 
+        return response()->json("Item nao encontrado");
         
 
         $menu_event_item_has_matherial = $this->menu_event_item_has_matherial->where('menu_event_has_items_id', $menu_event_has_item->id)->where('matherial_id', $matherial->id)->get()->first();
-        if(!$menu_event_item_has_matherial) dd("Material nao encontrado");
+        if(!$menu_event_item_has_matherial) 
+        return response()->json("Material nao encontrado");
 
         $menu_event_item_has_matherial->update([
             "checked_at"=>$check == true ? now() : null
         ]);
 
         $this->is_checked_all_items($menu_event_has_item);
-        return back()->with("message", 'Alterado com sucesso');
+        return response()->json("", 201);
     }
 
     public function check_item(Request $request) {
@@ -427,7 +442,7 @@ class EventController extends Controller
         // // Verifica se todos os ingredientes e materiais foram checados
         $this->is_checked_all_items($menu_event_has_item);
 
-        return back();
+        return response()->json("", 201);
     }
     
 
