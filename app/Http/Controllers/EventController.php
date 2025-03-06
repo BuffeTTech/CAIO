@@ -303,19 +303,22 @@ class EventController extends Controller
                 $query->where('type', FoodType::ITEM_INSUMO->name);
             })
             ->with([
-                'matherials.matherial'
+                'matherials.matherial',
+                'item'
             ])
             ->get();
 
-        $groupedItems = $eventItems->flatMap(function($menuItem) {
-            return $menuItem->matherials->map(function($matherial) use ($menuItem) {
-                return [
-                    'category' => $matherial->matherial->category,
-                    'menuItem' => $menuItem,
-                    // 'matherial' => $matherial->matherial
-                ];
+        $eventItems->each(function($menuItem) {
+            $groupedMatherials = $menuItem->matherials->groupBy(function($matherial) {
+                return $matherial->matherial->category;
             });
-        })->groupBy('category');
+
+            // Adiciona os materiais agrupados como uma nova propriedade
+            $menuItem->groupedMatherials = $groupedMatherials;
+
+            // Remove a propriedade matherials
+            unset($menuItem->matherials);
+        });
 
         $eventFixedItems = $this->menu_event_has_item
         ->where('menu_event_id', $id)
@@ -324,25 +327,25 @@ class EventController extends Controller
         })
         ->with([
             // 'item.ingredients.ingredient',
-            'matherials.matherial'
+            // 'matherials.matherial'
+            'item'
         ])
         ->get();
 
-
         $eventFixedItemsbyCategory = [];
+
         foreach ($eventFixedItems as $fixedItem) {
-                $category = $fixedItem->item->category; // Pegando a categoria do ingrediente
-                if ($category) {
-                    // Se a categoria ainda não existir no array, cria um novo espaço para ela
-                    if (!isset($eventFixedItemsbyCategory[$category])) {
-                        $eventFixedItemsbyCategory[$category] = (object) [
-                            'fixedItems' => []
-                        ];
-                    }
-                    $eventFixedItemsbyCategory[$category]->fixedItems[] = $fixedItem->item;
+            $category = $fixedItem->item->category; // Pegando a categoria do ingrediente
+            if ($category) {
+                // Se a categoria ainda não existir no array, cria um novo espaço para ela
+                if (!isset($eventFixedItemsbyCategory[$category])) {
+                    $eventFixedItemsbyCategory[$category] = [];
                 }
+                $eventFixedItemsbyCategory[$category][] = $fixedItem->item;
+            }
         }
-        return response()->json(['event'=>$event,"eventItems"=>$groupedItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
+
+        return response()->json(['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
         // return view('event.equipment_list', ['event'=>$event,"eventItems"=>$eventItems,"eventFixedItems"=>$eventFixedItemsbyCategory]);
     }
 
