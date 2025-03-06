@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('client_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('menu_id')->constrained()->onDelete('cascade');
             $table->foreignId('address_id')->onDelete('cascade'); 
+            $table->integer('guests_amount');
             $table->dateTime('date'); 
             $table->timestamps();
         });

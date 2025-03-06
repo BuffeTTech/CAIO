@@ -37,9 +37,10 @@ class CreateMenuEventService
                 $menuItem = MenuEventHasItem::create([
                     "menu_event_id" => $menuEvent->id,
                     "item_id" => $item->item_id,
-                    "checked_at" => null
+                    "checked_at" => null,
+                    "consumed_per_client"=>$item->item->consumed_per_client,
+                    "unit"=>$item->item->unit,
                 ]);
-
                 // Associar os ingredientes ao item recém-criado
                 foreach ($item->item->ingredients as $ingredient) {
                     $ingredients[] = [
@@ -47,9 +48,12 @@ class CreateMenuEventService
                         "ingredient_id" => $ingredient->ingredient_id,
                         "checked_at" => null,
                         "created_at" => now(),
-                        "updated_at" => now()
+                        "updated_at" => now(),
+                        "proportion_per_item"=>$ingredient->proportion_per_item,
+                        "unit"=>$ingredient->unit,
                     ];
                 }
+
 
                 // Associar os materiais ao item recém-criado
                 foreach ($item->item->matherials as $matherial) {

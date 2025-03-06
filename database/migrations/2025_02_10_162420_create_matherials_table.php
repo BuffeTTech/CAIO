@@ -16,8 +16,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->enum('category', array_column(MatherialType::cases(),'name'));
-            // $table->string('unit');
-            $table->float('quantity');
+            $table->float('quantity'); // QUANTIDADE NO ESTOQUE
             $table->string('observation')->nullable();
             $table->timestamps();
         });
