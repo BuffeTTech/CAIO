@@ -220,33 +220,42 @@ class EventController extends Controller
         } else if($type && !in_array($type, ["by_item","by_category"])) {
             return response()->json(["data"=>"Invalid type"], 404);
         } 
-
         if($type == "by_category") {
             $eventIngredientsByCategory = [];
 
             foreach ($event->menu_event->items as $menuItem) {
+                $categoriesByItem = [];
+                
                 foreach ($menuItem->ingredients as $eventIngredient) {
                     $category = $eventIngredient->ingredient->category; // Pegando a categoria do ingrediente
-                    
-                    if ($category) {
 
-                        // Se a categoria ainda não existir no array, cria um novo espaço para ela
-                        if (!isset($eventIngredientsByCategory[$category])) {
-                            $eventIngredientsByCategory[$category] = (object) [
-                                'ingredients' => []
-                            ];
+                    if(!isset($categoriesByItem[$category])){
+                        $categoriesByItem[$category] = [];
+                    }
+                    $ingredientKey = "ingredient-".$eventIngredient->ingredient->id;
+                    if(!isset($categoriesByItem[$category][$ingredientKey])){
+                        $categoriesByItem[$category][$ingredientKey]  = [
+                            "ingredient"=>$eventIngredient->ingredient,
+                            "proportion"=>$eventIngredient->proportion_per_item,
+                        ];
+                    } else {
+                        $categoriesByItem[$category][$ingredientKey]['proportion'] += $eventIngredient->proportion_per_client;
+                    }
+                }
+                foreach($categoriesByItem as $key=>$ingredients) {
+                    if(!isset($eventIngredientsByCategory[$key])){
+                        $eventIngredientsByCategory[$key] = [];
+                    }
+                    foreach($ingredients as $ingredientKey => $ingredient) {
+                        if(!isset($eventIngredientsByCategory[$key][$ingredientKey])){
+                            $eventIngredientsByCategory[$key][$ingredientKey] = $ingredient;
+                        } else {
+                            $eventIngredientsByCategory[$key][$ingredientKey]['proportion'] += $ingredient['proportion'];
                         }
-                        $itemExists = false;
-                        foreach ($eventIngredientsByCategory[$category]->ingredients as $itemIngredient) {
-                            if($eventIngredient->ingredient == $itemIngredient)
-                            $itemExists = true;
-                        }
-                        // Adiciona o ingrediente ao grupo da categoria correspondente
-                        if (!$itemExists)
-                        $eventIngredientsByCategory[$category]->ingredients[] = $eventIngredient->ingredient;
                     }
                 }
             }
+            // return response()->json(["data"=>$eventIngredientsByCategory]);
             return response()->json(['event'=>$event,"data"=>$eventIngredientsByCategory, "type"=>$type]);
 
         } else {
@@ -492,5 +501,4 @@ class EventController extends Controller
         $menu_event_has_item->delete();
         return back();
     }
-
 }
