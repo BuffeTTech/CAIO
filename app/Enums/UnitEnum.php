@@ -8,4 +8,5 @@ enum UnitEnum: string {
     
     case UNID = "unid";
     case KG = "kg";
+    case LITER = "liter";
 }

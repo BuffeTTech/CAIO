@@ -2,6 +2,7 @@
 
 use App\Enums\FoodCategory;
 use App\Enums\FoodType;
+use App\Enums\UnitEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +21,7 @@ return new class extends Migration
             $table->enum('type', array_column(FoodType::cases(),'name'));
             $table->enum('category', array_column(FoodCategory::cases(),'name'));
             $table->float('consumed_per_client');
-            $table->string('unit');
+            $table->enum('unit', array_column(UnitEnum::cases(),'name'));
             $table->timestamps();
         });
     }

@@ -24,7 +24,8 @@ class EventSeeder extends Seeder
             "client_id"=>$client->id,
             "menu_id"=>$menu->id,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
-            "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id
+            "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
+            'guests_amount'=>random_int(30, 100),
         ]);
 
         $ingredientService = new CreateMenuEventService();

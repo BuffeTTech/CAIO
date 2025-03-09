@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\UnitEnum;
 
 return new class extends Migration
 {
@@ -15,7 +16,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('item_id')->constrained()->onDelete('cascade');
             $table->foreignId('ingredient_id')->constrained()->onDelete('cascade');
-            $table->float('quantity');
+            $table->float('proportion_per_item');
+            $table->enum('unit', array_column(UnitEnum::cases(),'name'));
             $table->string('observation')->nullable();
             $table->timestamps();
         });

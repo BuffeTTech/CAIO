@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Enums\FoodCategory;
 use App\Enums\FoodType;
+use App\Enums\UnitEnum;
 use App\Models\Menu\{Item, Menu, MenuHasItem};
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Illuminate\Support\Collection;
@@ -102,12 +103,24 @@ class ImportSheet implements ToCollection, WithChunkReading
     private function processRow($row)
     {
         $itemEnum = FoodType::getEnumByName("ITEM_INSUMO");
+
+        $unitMapping = [
+            "litro"=>UnitEnum::LITER, 
+            "unid"=>UnitEnum::UNID,
+            "kg"=>UnitEnum::KG,
+            "pacote"=>UnitEnum::UNID,
+            "garrafa"=>UnitEnum::UNID,
+            "pct"=>UnitEnum::UNID,
+            "pote"=>UnitEnum::UNID,
+        ];
+
+
         try {
             $row_name = $row[0] ?? null;
             $row_category = isset($row[1]) ? explode("- ", $row[1])[1] : null;
             $row_menu = isset($row[2]) ? explode("- ", $row[2])[1] : null;
             $row_consumed_per_client = $row[3] ?? null;
-            $row_unit = $row[4] ?? null;
+            $row_unit = $unitMapping[$row[4]] ?? null;
             $row_cost = $row[5] ?? null;
 
             if (!$row_name || !$row_category || !$row_menu) {
@@ -118,13 +131,14 @@ class ImportSheet implements ToCollection, WithChunkReading
             $item = Item::firstOrCreate([
                 "name" => $row_name,
             ], [
+                "name" => $row_name,
                 "cost" => $row_cost,
                 "type" => $itemEnum, 
                 "category" => FoodCategory::getEnumByValue($row_category)->name,
                 "consumed_per_client" => $row_consumed_per_client,
-                "unit" => $row_unit
+                "unit" => $row_unit->name,
             ]);
-
+        
             $menuItem = MenuHasItem::firstOrCreate([
                 "item_id" => $item->id,
                 "menu_id" => $menu->id,
@@ -132,7 +146,6 @@ class ImportSheet implements ToCollection, WithChunkReading
                 "item_id" => $item->id,
                 "menu_id" => $menu->id,
             ]);
-
         } catch (\Exception $e) {
             dd("Erro ao importar linha: " . json_encode($row) . " - Erro: " . $e->getMessage());
             // \Log::error("Erro ao importar linha: " . json_encode($row) . " - Erro: " . $e->getMessage());

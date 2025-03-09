@@ -20,7 +20,7 @@ class Event extends Model
     }
     public function menu_event()
     {
-        return $this->belongsTo(MenuEvent::class, 'menu_id');
+        return $this->belongsTo(MenuEvent::class, 'id');
     }
     public function client()
     {

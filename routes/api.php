@@ -24,3 +24,16 @@ Route::post('/menu/{menu_slug}/item',  [MenuController::class, 'store_item_to_me
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
 Route::post('/event', [EventController::class, 'store'])->name('event.store');
 Route::get('/event/{event_id}',  [EventController::class, 'show'])->name('event.show');
+Route::get('/event/{event_id}/item/add',  [EventController::class, 'add_item_to_event'])->name('event.add_item_to_event');
+Route::post('/event/{event_id}/item',  [EventController::class, 'store_item_to_event'])->name('event.store_item_to_event');
+Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
+Route::get('/event/{event_id}/shopping_list',  [EventController::class, 'shopping_list'])->name('event.shopping_list');
+
+Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');
+Route::patch('/event/{event_id}/checklist/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'check_matherial'])->name('event.checklist.check_matherial');
+Route::patch('/event/{event_id}/checklist/item/{item_id}', [EventController::class, 'check_item'])->name('event.checklist.check_item');
+Route::get('/event/{event_id}/equipment_list',  [EventController::class, 'equipment_list'])->name('event.equipment_list');
+
+Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remove_item_from_event'])->name('event.item.remove_item');
+Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
+Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');

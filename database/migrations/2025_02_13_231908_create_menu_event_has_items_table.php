@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\UnitEnum;
 
 return new class extends Migration
 {
@@ -16,6 +17,9 @@ return new class extends Migration
             $table->foreignId('menu_event_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('item_id')->constrained()->onDelete('cascade'); 
             $table->dateTime('checked_at')->nullable()->default(null); 
+
+            $table->float('consumed_per_client');
+            $table->enum('unit', array_column(UnitEnum::cases(),'name'));
             $table->timestamps();
         });
     }
