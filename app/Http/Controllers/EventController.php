@@ -431,8 +431,14 @@ class EventController extends Controller
         $check = $request->check ?? false;
     
         // Busca o evento e o item ou falha se não encontrar
-        $event = $this->event->findOrFail($request->event_id);
-        $item = $this->item->findOrFail($request->item_id);
+        $event = $this->event->find($request->event_id);
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $item = $this->item->find($request->item_id);
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
+        }
     
         // Busca o menu_event associado ao evento
         $menu_event = $this->menu_event->where('event_id', $event->id)->firstOrFail();
@@ -441,7 +447,11 @@ class EventController extends Controller
         $menu_event_has_item = $this->menu_event_has_item
             ->where('menu_event_id', $menu_event->id)
             ->where('item_id', $item->id)
-            ->firstOrFail();
+            ->get()
+            ->first();
+        if(!$menu_event_has_item) {
+            return response()->json(["data"=>"Item not found"], 404);
+        }
     
         // Atualiza os ingredientes e materiais, independentemente do estado atual
         $this->menu_event_item_has_matherial
@@ -478,18 +488,31 @@ class EventController extends Controller
         ]);
     }
 
-    public function delete_item(Request $request) {
-        $event = $this->event->findOrFail($request->event_id);
-        $item = $this->item->findOrFail($request->item_id);
+    public function remove_item_from_event(Request $request) {
+        $event = $this->event->find($request->event_id);
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $item = $this->item->find($request->item_id);
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
+        }
     
         // Busca o menu_event associado ao evento
-        $menu_event = $this->menu_event->where('event_id', $event->id)->firstOrFail();
-    
+        $menu_event = $this->menu_event->where('event_id', $event->id)->first();
+        if(!$menu_event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        
         // Busca o item dentro do evento do menu
         $menu_event_has_item = $this->menu_event_has_item
             ->where('menu_event_id', $menu_event->id)
             ->where('item_id', $item->id)
-            ->firstOrFail();
+            ->get()
+            ->first();
+        if(!$menu_event_has_item) {
+            return response()->json(["data"=>"Item not found"], 404);
+        }
         $all_matherials_checked = !$this->menu_event_item_has_matherial
             ->where('menu_event_has_items_id', $menu_event_has_item->id)
             ->delete();
@@ -499,6 +522,81 @@ class EventController extends Controller
             ->delete();
         
         $menu_event_has_item->delete();
-        return back();
+        return response()->json("", 201);
     }
+    public function remove_ingredient_from_item_event(Request $request) {
+        $event = $this->event->find($request->event_id);
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $item = $this->item->find($request->item_id);
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
+        }
+    
+        // Busca o menu_event associado ao evento
+        $menu_event = $this->menu_event->where('event_id', $event->id)->first();
+        if(!$menu_event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+    
+        // Busca o item dentro do evento do menu
+        $menu_event_has_item = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->where('item_id', $item->id)
+            ->get()
+            ->first();
+        if(!$menu_event_has_item) {
+            return response()->json(["data"=>"Item not found"], 404);
+        }
+        $menu_event_item_has_ingredient = $this->menu_event_item_has_ingredient
+                                                ->where('menu_event_has_items_id', $menu_event_has_item->id)
+                                                ->where('ingredient_id', $request->ingredient_id)
+                                                ->get()
+                                                ->first();
+
+        if(!$menu_event_item_has_ingredient) {
+            return response()->json(["data"=>"Ingredient not found"], 404);
+        }
+        $menu_event_item_has_ingredient->delete();
+        return response()->json("", 201);
+    }
+    public function remove_matherial_from_item_event(Request $request) {
+        $event = $this->event->find($request->event_id);
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $item = $this->item->find($request->item_id);
+        if(!$item) {
+            return response()->json(["data"=>"Invalid item id"], 404);
+        }
+    
+        // Busca o menu_event associado ao evento
+        $menu_event = $this->menu_event->where('event_id', $event->id)->first();
+        if(!$menu_event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+    
+        // Busca o item dentro do evento do menu
+        $menu_event_has_item = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->where('item_id', $item->id)
+            ->get()
+            ->first();
+        if(!$menu_event_has_item) {
+            return response()->json(["data"=>"Item not found"], 404);
+        }
+        $menu_event_item_has_matherial = $this->menu_event_item_has_matherial
+                                                ->where('menu_event_has_items_id', $menu_event_has_item->id)
+                                                ->where('matherial_id', $request->matherial_id)
+                                                ->get()
+                                                ->first();
+
+        if(!$menu_event_item_has_matherial) {
+            return response()->json(["data"=>"matherial not found"], 404);
+        }
+        $menu_event_item_has_matherial->delete();
+        return response()->json("", 201);
+    }
+    
 }

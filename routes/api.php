@@ -33,3 +33,7 @@ Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_
 Route::patch('/event/{event_id}/checklist/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'check_matherial'])->name('event.checklist.check_matherial');
 Route::patch('/event/{event_id}/checklist/item/{item_id}', [EventController::class, 'check_item'])->name('event.checklist.check_item');
 Route::get('/event/{event_id}/equipment_list',  [EventController::class, 'equipment_list'])->name('event.equipment_list');
+
+Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remove_item_from_event'])->name('event.item.remove_item');
+Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
+Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');
