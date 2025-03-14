@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MatherialController;
@@ -14,6 +15,7 @@ Route::get('/user', function (Request $request) {
 # Menu Routes
 Route::get('/menu',  [MenuController::class, 'index']);
 Route::get('/menu/{menu_slug}',  [MenuController::class, 'show'])->name('menu.show');
+Route::get('/menu/{menu_slug}/items',  [MenuController::class, 'show_items'])->name('menu.show_items');
 Route::delete('/menu/items/{item_id}/ingredients/{id}',  [IngredientController::class, 'destroy'])->name('ingredient.destroy');
 Route::delete('/menu/items/{item_id}/matherials/{id}',  [MatherialController::class, 'destroy'])->name('matherial.destroy');
 Route::delete('/menu/{menu_slug}/item/{item_id}',  [MenuController::class, 'remove_item_from_menu'])->name('menu.remove_item_from_menu');
@@ -37,3 +39,10 @@ Route::get('/event/{event_id}/equipment_list',  [EventController::class, 'equipm
 Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remove_item_from_event'])->name('event.item.remove_item');
 Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
 Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');
+
+Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
+Route::get('/estimate/add-item',  [EstimateController::class, 'add_item_session'])->name('menu.add_item_session');
+Route::post('/estimate/change-menu',  [EstimateController::class, 'change_menu_session'])->name('menu.change_menu_session');
+Route::post('/estimate/add-item', [EstimateController::class, 'store_item_session'])->name('estimate.store_item_session');
+Route::delete('/estimate/item/{item_id}', [EstimateController::class, 'remove_item_session'])->name('estimate.remove_item_session');
+Route::get('/estimate/menu/{menu_slug}',  [EstimateController::class, 'show_menu_items'])->name('estimate.show_menu_items');

@@ -133,15 +133,18 @@ class FixedItemsSeeder extends Seeder
 
                 if(!is_numeric($qtd))
                 $qtd = 0;
-                
-                $item = Item::create([
-                    "name" => $name,
-                    "cost" => 0,
-                    "type" => $fixedItemEnum, 
-                    "category" => $currentCategory,
-                    "consumed_per_client" => 0,
-                    "unit" => 'unid'
-                ]);
+
+                $item = Item::where('name', $name)->get()->first();
+                if(!$item) {
+                    $item = Item::create([
+                        "name" => $name,
+                        "cost" => 0,
+                        "type" => $fixedItemEnum, 
+                        "category" => $currentCategory,
+                        "consumed_per_client" => 0,
+                        "unit" => 'unid'
+                    ]);
+                }
 
                 if($menu){
                     $menuItem = MenuHasItem::create([
