@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FoodType;
-use App\Models\FixedItems;
 use App\Models\Menu\Item;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
@@ -16,7 +15,6 @@ class EstimateController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
-        protected FixedItems $fixedItems,
         protected MenuHasItem $menu_has_item,
     )
     {
