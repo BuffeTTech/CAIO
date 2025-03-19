@@ -11,10 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('menu_has_role_quantities', function (Blueprint $table) {
+        Schema::create('role_informations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('menu_id')->constrained('menus')->onDelete('cascade');
-            $table->foreignId('role_quantity_id')->constrained('role_quantities')->onDelete('cascade'); // role information
+            $table->string('name');
+            $table->float('price');
             $table->timestamps();
         });
     }
@@ -24,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('menu_has_role_quantities');
+        Schema::dropIfExists('role_informations');
     }
 };

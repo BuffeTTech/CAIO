@@ -42,6 +42,7 @@ Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [Even
 
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
 Route::get('/estimate/add-item',  [EstimateController::class, 'add_item_session'])->name('menu.add_item_session');
+Route::get('/estimate/menu/{menu_slug}/costs',  [EstimateController::class, 'get_menu_costs'])->name('menu.get_menu_costs');
 Route::post('/estimate/change-menu',  [EstimateController::class, 'change_menu_session'])->name('menu.change_menu_session');
 Route::post('/estimate/add-item', [EstimateController::class, 'store_item_session'])->name('estimate.store_item_session');
 Route::delete('/estimate/item/{item_id}', [EstimateController::class, 'remove_item_session'])->name('estimate.remove_item_session');

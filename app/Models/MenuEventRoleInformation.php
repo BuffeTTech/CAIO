@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class RoleQuantity extends Model
+class MenuEventRoleInformation extends Model
 {
     //
 }

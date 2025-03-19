@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\FoodType;
+use App\Enums\MenuInformationType;
 use App\Models\Menu\Item;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
+use App\Models\MenuHasRoleQuantity;
+use App\Models\MenuInformation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
 
@@ -16,6 +19,8 @@ class EstimateController extends Controller
         protected Menu $menu,
         protected Item $items,
         protected MenuHasItem $menu_has_item,
+        protected MenuHasRoleQuantity $menu_has_role_quantity,
+        protected MenuInformation $menu_information
     )
     {
     }
@@ -408,5 +413,55 @@ class EstimateController extends Controller
         return response()->json([
             'message' => 'Menu changed successfully',
         ]);
+    }
+
+    public function get_menu_costs(Request $request) {
+        $quantity = $request->quantity;
+        if(!$quantity) {
+            return response()->json([
+                'message' => 'Please provide a quantity'
+            ], 400);
+        }
+        $menu_slug = $request->menu_slug;
+        if (!$menu_slug) {
+            return response()->json([
+                'message' => 'Please provide a menu_slug'
+            ], 400);
+        }
+    
+        $menu = $this->menu->where('slug', $menu_slug)->first();
+        if (!$menu) {
+            return response()->json(["data" => "Invalid menu slug"], 404);
+        }
+
+        $role_quantity = $this->menu_has_role_quantity
+                                    ->where('menu_id', $menu->id)
+                                    ->whereHas('quantity', function ($query) use($quantity) {
+                                        $query->where('guests_init', '<=', $quantity)
+                                              ->where('guests_end', '>=', $quantity);
+                                    })
+                                    ->get();
+        if(count($role_quantity) == 0) {
+            return response()->json([
+                'message' => 'Invalid number of guests'
+            ], 404);
+        }
+        $informations = $this->menu_information->get();
+
+        $role_information = collect($role_quantity->map(function($information) {
+            return [
+                // 'id' => $information->quantity->id,
+                'name' => $information->quantity->role->name,
+                'unit_price' => $information->quantity->role->price,
+                'quantity' => $information->quantity->quantity,
+                'created_at' => $information->quantity->created_at,
+                'updated_at' => $information->quantity->updated_at,
+                'type' => MenuInformationType::EMPLOYEES->name
+            ];
+        }));
+        
+        $merged = collect($role_information)->merge($informations);
+        
+        return response()->json($merged);
     }
 }
