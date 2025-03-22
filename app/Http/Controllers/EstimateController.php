@@ -452,8 +452,8 @@ class EstimateController extends Controller
             return [
                 // 'id' => $information->quantity->id,
                 'name' => $information->quantity->role->name,
-                'unit_price' => $information->quantity->role->price,
-                'quantity' => $information->quantity->quantity,
+                'unit_price' => 0,
+                'quantity' => $information->quantity->role->price,
                 'created_at' => $information->quantity->created_at,
                 'updated_at' => $information->quantity->updated_at,
                 'type' => MenuInformationType::EMPLOYEES->name
