@@ -12,6 +12,8 @@ use App\Models\MenuInformation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
 
+use function PHPUnit\Framework\isArray;
+
 class EstimateController extends Controller
 {
     private $expiresAt = 60 * 60; // 1 hora
@@ -33,10 +35,11 @@ class EstimateController extends Controller
             ], 400);
         }
 
-        $data = Redis::get('session:'.$id);
-        $data = json_decode($data, true);
+        $key = 'session:'.$id;
 
-        if(!$data) {
+        $data = Redis::hgetall($key);
+
+        if(count($data) == 0) {
             $menu = $request->menu;
             if(!$menu) {
                 return response()->json([
@@ -49,11 +52,12 @@ class EstimateController extends Controller
                     'message' => 'Invalid menu slug'
                 ], 404);
             }
-            $data = [
-                'menu'=>$menu->slug,
-                'items'=>[],
-            ];
-            Redis::set('session:'.$id, json_encode($data), 'EX', $this->expiresAt);
+            Redis::hset($key, "menu", $menu->slug);
+            Redis::hset($key, "items", json_encode([]));
+            // Redis::hset($key, "items", json_encode([]));
+            Redis::expire($key, $this->expiresAt);
+
+            $data = Redis::hgetall($key);
         }
 
         $menu = $this->menu->where('slug', $data['menu'])->first();
@@ -81,22 +85,28 @@ class EstimateController extends Controller
             ], 400);
         }
 
-        $data = Redis::get('session:'.$id);
-        if(!$data) {
+        $existsInRedis = Redis::exists('session:'.$id);
+        if(!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
 
-        $data = json_decode($data, true);
-
-        $menu = $request->menu;
-        if(!$menu && $data['menu'] == "") {
+        $menu = Redis::hget('session:'.$id, 'menu');
+        if(!$menu) {
             return response()->json([
-                'message' => 'Please provide a menu'
-            ], 400);
+                'message' => 'Session not found'
+            ], 404);
+        }
+        
+        $items = Redis::hget('session:'.$id, 'items');
+        $items = json_decode($items, true);
+        if(!is_array($items)) {
+            Redis::hset('session:'.$id, 'items', json_encode([]));
+            $items = [];
         }
 
+        // $data = json_decode($data, true);
         $menu = $this->menu->where('slug', $menu)->first();
         if(!$menu) {
             return response()->json([
@@ -112,20 +122,19 @@ class EstimateController extends Controller
         }
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item_id)->get()->first();
-        $exist_in_redis = in_array($item_id, array_column($data['items'], 'id'));
+        $exist_in_redis = in_array($item_id, array_column($items, 'id'));
         if($exist_in_original_menu || $exist_in_redis) {
             return response()->json([
                 'message' => 'Item already exists'
             ], 400);
         }
 
-        $data['menu'] = $menu->slug; // salvando por via das duvidas caso nao exista
-        $data['items'][] = [
+        $items[] = [
             'id'=>$item_id,
             "type"=>'add'
         ];
 
-        Redis::set('session:'.$id, json_encode($data), 'EX', $this->expiresAt);
+        Redis::hset('session:'.$id, 'items', json_encode($items));
 
         return response()->json([
             'message' => 'Item added to session successfully',
@@ -144,6 +153,13 @@ class EstimateController extends Controller
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
+
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
     
         $items = $this->menu_has_item
             ->where('menu_id', $menu->id)
@@ -153,18 +169,17 @@ class EstimateController extends Controller
             ->with('item')
             ->get()
             ->pluck('item');
+            
     
-        $data = Redis::get('session:' . $request->user_id);
-        if (!$data) {
+        $data = json_decode(Redis::hget('session:' . $id, 'items'), true);
+        if (!$data && count($items) == 0) {
             return response()->json($items);
         }
-    
-        $data = json_decode($data, true);
         $add_items = [];
         $remove_items = [];
         $modifies = [];
-    
-        foreach ($data['items'] as $item) {
+
+        foreach ($data as $item) {
             switch ($item['type']) {
                 case 'add':
                     $add_items[] = $item['id'];
@@ -205,14 +220,14 @@ class EstimateController extends Controller
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $data = Redis::get('session:'.$id);
+        $data = Redis::hgetall('session:'.$id);
         if(!$data) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
 
-        $data = json_decode($data, true);
+        $data['items'] = json_decode($data['items'], true);
         $menu = $this->menu->where('slug', $data['menu'])->first();
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
@@ -247,10 +262,9 @@ class EstimateController extends Controller
         }
 
         // Remove items
-        $items = $items->filter(function ($item) use ($remove_items) {
+        $items = collect($items ?? [])->filter(function ($item) use ($remove_items) {
             return !in_array($item->id, $remove_items);
         });
-    
         // Add new items
         $new_items_query = $this->items->whereIn('id', $add_items)->get();
         $ids = array_column($new_items_query->toArray(), 'id');
@@ -267,7 +281,7 @@ class EstimateController extends Controller
         return response()->json(['menu' => $menu, 'items' => array_values($items->toArray())]);
     }
 
-    public function modify_item_session(Request $request) {
+    public function modify_item_session(Request $request) { // fazer dnv depois
         $id = $request->user_id;
         if(!$id) {
             return response()->json([
@@ -329,13 +343,25 @@ class EstimateController extends Controller
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $data = Redis::get('session:'.$id);
-        if(!$data) {
+        $existsInRedis = Redis::exists('session:'.$id);
+        if(!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
-
+        $menu_slug = Redis::hget('session:'.$id, 'menu');
+        if(!$menu_slug) {
+            return response()->json([
+                'message' => 'Menu not found'
+            ], 404);
+        }
+        $items = Redis::hget('session:'.$id, 'items');
+        $items = json_decode($items, true);
+        if(!is_array($items)) {
+            Redis::hset('session:'.$id, 'items', json_encode([]));
+            $items = [];
+        }
+        
         $remove = $request->item_id;
         if(!$remove) {
             return response()->json([
@@ -343,8 +369,7 @@ class EstimateController extends Controller
             ], 400);
         }
 
-        $data = json_decode($data, true);
-        $menu = $this->menu->where('slug', $data['menu'])->first();
+        $menu = $this->menu->where('slug', $menu_slug)->first();
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
@@ -355,19 +380,18 @@ class EstimateController extends Controller
                 'message' => 'Invalid item id'
             ], 404);
         }
-        $data['menu'] = $menu->slug; 
 
-        $exist_in_redis = in_array($item['id'], array_column($data['items'], 'id'));
+        $exist_in_redis = in_array($item['id'], array_column($items, 'id'));
         if($exist_in_redis) {
-            $index = array_search($item['id'], array_column($data['items'], 'id'));
+            $index = array_search($item['id'], array_column($items, 'id'));
             if ($index !== false) {
-                array_splice($data['items'], $index, 1);
+                array_splice($items, $index, 1);
             }        
         }
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item->id)->get()->first();
         if($exist_in_original_menu) {
-            $data['items'][] = [
+            $items[] = [
                 'id'=>$item->id,
                 "type"=>'remove'
             ];
@@ -379,11 +403,11 @@ class EstimateController extends Controller
             ], 400);
         }
 
-        Redis::set('session:'.$id, json_encode($data), 'EX', $this->expiresAt);
+        Redis::hset('session:'.$id, 'items', json_encode($items));
         
         return response()->json([
             'message' => 'Item removed successfully',
-            'data'=>$data,
+            // 'data'=>$data,
         ]);
     }
 
@@ -394,21 +418,23 @@ class EstimateController extends Controller
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $data = Redis::get('session:'.$id);
-        if(!$data) {
+        $existsInRedis = Redis::exists('session:'.$id);
+        if(!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
 
-        $data = json_decode($data, true);
         $menu = $this->menu->where('slug', $request->menu)->first();
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
 
-        $data['menu'] = $menu->slug;
-        Redis::set('session:'.$id, json_encode($data), 'EX', $this->expiresAt);
+        $key = 'session:'.$id;
+
+        Redis::hset($key, 'menu', $menu->slug);
+        Redis::hset($key, 'items', json_encode([]));
+        Redis::expire($key, $this->expiresAt);
 
         return response()->json([
             'message' => 'Menu changed successfully',
@@ -448,20 +474,51 @@ class EstimateController extends Controller
         }
         $informations = $this->menu_information->get();
 
+
         $role_information = collect($role_quantity->map(function($information) {
             return [
                 // 'id' => $information->quantity->id,
                 'name' => $information->quantity->role->name,
-                'unit_price' => 0,
-                'quantity' => $information->quantity->role->price,
+                'unit_price' => $information->quantity->role->price,
+                'quantity' => $information->quantity->quantity,
                 'created_at' => $information->quantity->created_at,
                 'updated_at' => $information->quantity->updated_at,
                 'type' => MenuInformationType::EMPLOYEES->name
             ];
         }));
-        
+
         $merged = collect($role_information)->merge($informations);
         
         return response()->json($merged);
+    }
+
+    public function teste() {
+        $key = 'user:2';
+
+        // // Campos e valores do hash
+        // $fields = [
+        //     'name' => 'John Doe',
+        //     'email' => 'johndoe@example.com',
+        //     'age' => 30,
+        // ];
+    
+        // // Adicionando os campos ao hash
+        // foreach ($fields as $field => $value) {
+        //     Redis::hset($key, $field, $value);
+        // }
+    
+        // return response()->json(['message' => 'Hash created successfully']);
+
+//         $data = Redis::hgetall('user:1');
+// return response()->json($data);
+            // $dt = [
+            //     "nome"=>"teste",
+            //     "email"=>"teste@teste.com"
+            // ];
+            // Redis::hset($key, "teste", json_encode($dt), 'EX', $this->expiresAt);
+            // Redis::expire($key, $this->expiresAt);
+            $data = Redis::hgetall($key);
+            dd($data);
+            return response()->json($data);
     }
 }

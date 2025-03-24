@@ -47,7 +47,13 @@ class EmployeesCostSeeder extends Seeder
         ];
         
         $roles = [
-            'Bebida', 'Churrasqueira', 'Cozinha / Fritura', 'Auxiliar / Louças', 'Garçom', 'Chapa / Lanches', 'Cozinha'
+            'Bebida'=>220,
+            'Churrasqueira'=>280,
+            'Cozinha / Fritura'=>220,
+            'Auxiliar / Louças'=>220,
+            'Garçom'=>220,
+            'Chapa / Lanches'=>220,
+            'Cozinha'=>220
         ];
         
         $quantities = [
@@ -61,10 +67,11 @@ class EmployeesCostSeeder extends Seeder
         ];
         
         foreach ($menus as $menu) {
-            foreach ($roles as $index => $role) {
+            $index = 0;
+            foreach ($roles as $role => $price) {
                 $role_info = RoleInformations::create([
                     'name' => $role,
-                    'price' => 200,
+                    'price' => $price,
                 ]);
                 
                 foreach ($quantities as [$init, $end, $values]) {
@@ -80,6 +87,7 @@ class EmployeesCostSeeder extends Seeder
                         'role_quantity_id' => $quantity->id,
                     ]);
                 }
+                $index++;
             }
         }
         
