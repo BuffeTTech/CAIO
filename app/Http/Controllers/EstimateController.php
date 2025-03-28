@@ -9,14 +9,19 @@ use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
 use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 use function PHPUnit\Framework\isArray;
 
 class EstimateController extends Controller
 {
     private $expiresAt = 60 * 60; // 1 hora
+    private $minGuests = 25;
+    private $initialGuests = 25;
+
     public function __construct(
         protected Menu $menu,
         protected Item $items,
@@ -52,10 +57,27 @@ class EstimateController extends Controller
                     'message' => 'Invalid menu slug'
                 ], 404);
             }
+            $costs = [];
+            try {
+                $costs = $this->mount_costs($menu, $this->initialGuests);
+            } catch(Exception $e) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 400);
+            }            
             Redis::hset($key, "menu", $menu->slug);
+            Redis::hset($key, "guests", $this->minGuests);
             Redis::hset($key, "items", json_encode([]));
+            Redis::hset($key, "costs", json_encode($costs));
             // Redis::hset($key, "items", json_encode([]));
             Redis::expire($key, $this->expiresAt);
+
+            // $data = [
+            //     'menu'=>$menu->slug,
+            //     'initial_guests'=>$this->initialGuests,
+            //     'min_guests'=>$this->minGuests,
+            //     'costs'=>$costs,
+            // ];
 
             $data = Redis::hgetall($key);
         }
@@ -65,7 +87,10 @@ class EstimateController extends Controller
         return response()->json([
             'message' => 'Session created successfully',
             'data'=>[
-                'menu'=>$menu
+                'menu'=>$menu,
+                'initial_guests'=>$data['guests'],
+                'min_guests'=>$this->minGuests,
+                // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
     }
@@ -448,6 +473,11 @@ class EstimateController extends Controller
                 'message' => 'Please provide a quantity'
             ], 400);
         }
+        if($quantity < $this->minGuests) {
+            return response()->json([
+                'message' => 'Invalid number of guests'
+            ], 400);
+        }
         $menu_slug = $request->menu_slug;
         if (!$menu_slug) {
             return response()->json([
@@ -459,7 +489,40 @@ class EstimateController extends Controller
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
+        $id = $request->user_id;
+        if($id) {
+            $key = 'session:'.$id;
+            $existsInRedis = Redis::exists($key);
+            if(!$existsInRedis) {
+                return response()->json([
+                    'message' => 'Session not found'
+                ], 404);
+            }
 
+            $data = Redis::hget($key, 'costs');
+            $guests = Redis::hget($key, 'guests');
+            $data = json_decode($data, true);
+            if($data) {
+                if($guests == $quantity)
+                    return response()->json($data);
+                // $merged = $this->mount_costs($menu, $quantity);
+
+                Redis::hset($key, 'guests', $quantity);
+            }
+        }
+
+        try {
+            $merged = $this->mount_costs($menu, $quantity);
+        } catch(Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage()
+            ], 400);
+        }
+        
+        return response()->json($merged);
+    }
+
+    private function mount_costs(Menu $menu, int $quantity) {
         $role_quantity = $this->menu_has_role_quantity
                                     ->where('menu_id', $menu->id)
                                     ->whereHas('quantity', function ($query) use($quantity) {
@@ -468,16 +531,17 @@ class EstimateController extends Controller
                                     })
                                     ->get();
         if(count($role_quantity) == 0) {
-            return response()->json([
-                'message' => 'Invalid number of guests'
-            ], 404);
+            throw new \Exception('Invalid number of guests');
+            // return response()->json([
+            //     'message' => 'Invalid number of guests'
+            // ], 404);
         }
         $informations = $this->menu_information->get();
 
 
         $role_information = collect($role_quantity->map(function($information) {
             return [
-                // 'id' => $information->quantity->id,
+                'id' => $information->quantity->id, // id do relacionamento
                 'name' => $information->quantity->role->name,
                 'unit_price' => $information->quantity->role->price,
                 'quantity' => $information->quantity->quantity,
@@ -488,37 +552,80 @@ class EstimateController extends Controller
         }));
 
         $merged = collect($role_information)->merge($informations);
-        
-        return response()->json($merged);
+
+        return $merged;
     }
 
-    public function teste() {
-        $key = 'user:2';
+    public function change_cost_data(Request $request) {
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
 
-        // // Campos e valores do hash
-        // $fields = [
-        //     'name' => 'John Doe',
-        //     'email' => 'johndoe@example.com',
-        //     'age' => 30,
-        // ];
-    
-        // // Adicionando os campos ao hash
-        // foreach ($fields as $field => $value) {
-        //     Redis::hset($key, $field, $value);
-        // }
-    
-        // return response()->json(['message' => 'Hash created successfully']);
+        $cost_id = $request->cost_id;
+        if(!$cost_id) {
+            return response()->json([
+                'message' => 'Please provide an item_id'
+            ], 400);
+        }
 
-//         $data = Redis::hgetall('user:1');
-// return response()->json($data);
-            // $dt = [
-            //     "nome"=>"teste",
-            //     "email"=>"teste@teste.com"
-            // ];
-            // Redis::hset($key, "teste", json_encode($dt), 'EX', $this->expiresAt);
-            // Redis::expire($key, $this->expiresAt);
-            $data = Redis::hgetall($key);
-            dd($data);
-            return response()->json($data);
+        $value = $request->value;
+        if(!$value) {
+            return response()->json([
+                'message' => 'Please provide a new value'
+            ], 400);
+        }
+        $type = $request->type;
+        if(!$type) {
+            return response()->json([
+                'message' => 'Please provide the type'
+            ], 400);
+        }
+        $key = 'session:'.$id;
+
+        $existsInRedis = Redis::exists($key);
+        if(!$existsInRedis) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 422);
+        }
+        $costs = Redis::hget($key, 'costs');
+        $costs = json_decode($costs, true);
+
+        dd($costs);
     }
+
+    public function get_session_by_user(Request $request) {
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
+
+        $key = 'session:'.$id;
+
+        $data = Redis::hgetall($key);
+
+        if(count($data) == 0) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 400);
+        }
+
+        $menu = $this->menu->where('slug', $data['menu'])->first();
+
+        return response()->json([
+            'message' => 'Session created successfully',
+            'data'=>[
+                'menu'=>$menu,
+                'initial_guests'=>$data['guests'],
+                'min_guests'=>$this->minGuests,
+                // 'costs'=>json_decode($data['costs'], true),
+            ],
+        ]);
+    }
+    
 }
