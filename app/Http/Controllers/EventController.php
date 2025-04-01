@@ -298,7 +298,7 @@ class EventController extends Controller
     
 
         
-        return response()->json(['event'=>$event,"eventIngredients"=>$eventIngredientsByCategory]);
+        // return response()->json(['event'=>$event,"eventIngredients"=>$eventIngredientsByCategory]);
     }
 
     public function production_list(Request $request){
