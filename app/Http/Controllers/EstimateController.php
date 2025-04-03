@@ -590,7 +590,18 @@ class EstimateController extends Controller
         $cost_id = $request->cost_id;
         if(!$cost_id) {
             return response()->json([
-                'message' => 'Please provide an item_id'
+                'message' => 'Please provide an cost_id'
+            ], 400);
+        }
+        $row = $request->row;
+        if(!$row) {
+            return response()->json([
+                'message' => 'Please provide an row'
+            ], 400);
+        }
+        if(!in_array($row, ['unit_price', 'quantity'])) {
+            return response()->json([
+                'message' => 'Invalid row'
             ], 400);
         }
 
@@ -599,6 +610,11 @@ class EstimateController extends Controller
             return response()->json([
                 'message' => 'Please provide a new value'
             ], 400);
+        }
+        if(!is_numeric($value) || $value < 0) {
+            return response()->json([
+                'message' => 'Invalid value'
+            ], 422);
         }
         $type = $request->type;
         if(!$type) {
@@ -617,7 +633,34 @@ class EstimateController extends Controller
         $costs = Redis::hget($key, 'costs');
         $costs = json_decode($costs, true);
 
-        dd($costs);
+        if (!is_array($costs)) {
+            return response()->json([
+                'message' => 'Invalid costs data'
+            ], 400);
+        }
+
+        $found = false;
+        foreach ($costs as &$cost) {
+            if ($cost['id'] === $cost_id && $cost['type'] === $type) {
+                if($row == 'unit_price') {
+                    $cost['unit_price'] = $value; // Atualiza o valor
+                } else if($row == 'quantity') {
+                    $cost['quantity'] = $value; // Atualiza o valor
+                }
+                $found = true;
+                break; // Interrompe o loop
+            }
+        }
+
+        if (!$found) {
+            return response()->json([
+                'message' => 'Cost not found'
+            ], 404);
+        }
+
+        Redis::hset($key, 'costs', json_encode($costs));
+
+        return response()->json("Adicionado com sucesso");
     }
 
     public function get_session_by_user(Request $request) {
@@ -736,6 +779,7 @@ class EstimateController extends Controller
             'client_id'=>$client->id,
             "menu_id"=>$menu->id,
             "address_id"=>$address->id,
+            "type"=>EventType::OPEN_ESTIMATE->name,
         ]);
 
         Redis::del('session:'.$id);
