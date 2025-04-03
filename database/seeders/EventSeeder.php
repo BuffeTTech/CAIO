@@ -26,6 +26,7 @@ class EventSeeder extends Seeder
             "menu_id"=>$menu_event->id,
             'type' => EventType::CLOSED_ESTIMATE->name,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
+            "time"=>fake()->time(),
             "address_id" => random_int(0, 1) == 0 ? $client_event->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
         ]);
@@ -41,6 +42,7 @@ class EventSeeder extends Seeder
             "menu_id"=>$menu_estimate->id,
             'type' => EventType::OPEN_ESTIMATE->name,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
+            "time"=>fake()->time(),
             "address_id" => random_int(0, 1) == 0 ? $client_estimate->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
         ]);

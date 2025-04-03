@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\EventType;
 use App\Enums\FoodType;
 use App\Enums\MenuInformationType;
+use App\Models\Address;
+use App\Models\Client;
 use App\Models\Event;
 use App\Models\Menu\Item;
 use App\Models\Menu\Menu;
@@ -14,6 +16,7 @@ use App\Models\MenuInformation;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 use function PHPUnit\Framework\isArray;
@@ -30,7 +33,10 @@ class EstimateController extends Controller
         protected Event $event,
         protected MenuHasItem $menu_has_item,
         protected MenuHasRoleQuantity $menu_has_role_quantity,
-        protected MenuInformation $menu_information
+        protected MenuInformation $menu_information,
+
+        protected Client $client,
+        protected Address $address,
     )
     {}
     public function index(){
@@ -643,6 +649,107 @@ class EstimateController extends Controller
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
+    }
+
+    public function save_estimate(Request $request) {
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            // Validações para o endereço
+            'address.zipcode' => ['required', 'regex:/^\d{5}-\d{3}$/'], // Valida o formato do CEP (xxxxx-xxx)
+            'address.street' => ['required', 'string', 'max:255'],
+            'address.number' => ['required', 'string', 'max:10'],
+            'address.neighborhood' => ['required', 'string', 'max:255'],
+            'address.state' => ['required', 'string', 'size:2'], // Valida o estado com 2 caracteres
+            'address.city' => ['required', 'string', 'max:255'],
+            'address.complement' => ['nullable', 'string', 'max:255'], // Campo opcional
+        
+            // Validações para os detalhes do usuário
+            'details.name' => ['required', 'string', 'max:255'],
+            'details.email' => ['required', 'email', 'max:255'], // Valida o formato de email
+            'details.phone' => ['required', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'], // Valida o formato do telefone (xx) xxxxx-xxxx
+        
+            // Validações para o evento
+            'event.date' => ['required', 'date'], // Valida se é uma data válida
+            'event.time' => ['required', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'], // Valida o formato HH:mm
+            'event.num_guests' => ['required', 'integer', 'min:1'], // Número de convidados deve ser maior que 0
+        
+            // Validação para o ID do usuário
+            'user_id' => ['required', 'uuid'], // Valida o formato UUID
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $address = $request->address;
+        $details = $request->details;
+        $event = $request->event;
+        
+        $key = 'session:'.$id;
+
+        $data = Redis::hgetall($key);
+
+        if(count($data) == 0) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 400);
+        }
+
+        $menu = $this->menu->where('slug', $data['menu'])->first();
+
+        $address = $this->address->create([
+            'zipcode'=>$address['zipcode'],
+            'street'=>$address['street'],
+            'number'=>$address['number'],
+            'neighborhood'=>$address['neighborhood'],
+            'state'=>$address['state'],
+            'city'=>$address['city'],
+            'complement'=>$address['complement'],
+            "country"=>"Brasil",
+        ]);
+
+        $client = $this->client->create([
+            'name'=>$details['name'],
+            'email'=>$details['email'],
+            'whatsapp'=>$details['phone'],
+            'address_id'=>$address->id,
+        ]);
+
+        $eventDate = date('Y-m-d', strtotime($event['date']));
+        // return response()->json([
+        //     'message' => [$eventDate, $event['date'], $event['time'], $event['num_guests']],
+        // ], 404);
+
+        $event = $this->event->create([
+            'date'=>$eventDate,
+            'time'=>$event['time'],
+            'guests_amount'=>$event['num_guests'],
+            'client_id'=>$client->id,
+            "menu_id"=>$menu->id,
+            "address_id"=>$address->id,
+        ]);
+
+        Redis::del('session:'.$id);
+        
+        return response()->json([
+            'message' => 'Estimate saved successfully',
+            // 'data'=>[
+            //     'menu'=>$menu,
+            //     'address'=>$address,
+            //     'client'=>$client,
+            //     'event'=>$event,
+            // ],
+        ]);
+
     }
     
 }

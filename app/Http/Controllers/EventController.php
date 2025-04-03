@@ -70,6 +70,7 @@ class EventController extends Controller
             "client_id"=>$client->id,
             "menu_id"=>$menu->id,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
+            "time"=>fake()->time(),
             "type"=> EventType::CLOSED_ESTIMATE->name,
             "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
