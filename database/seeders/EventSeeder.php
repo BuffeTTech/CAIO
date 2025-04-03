@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\EventType;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
@@ -18,17 +19,36 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        $client = Client::find(1);
-        $menu = Menu::find(1);
+        $client_event = Client::find(1);
+        $menu_event = Menu::find(1);
         $event = Event::create([
-            "client_id"=>$client->id,
-            "menu_id"=>$menu->id,
+            "client_id"=>$client_event->id,
+            "menu_id"=>$menu_event->id,
+            'type' => EventType::CLOSED_ESTIMATE->name,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
-            "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
+            "address_id" => random_int(0, 1) == 0 ? $client_event->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
         ]);
 
         $ingredientService = new CreateMenuEventService();
-        $ingredientService->handle($event, $menu);
+        $ingredientService->handle($event, $menu_event);
+
+
+        $client_estimate = Client::find(1);
+        $menu_estimate = Menu::find(2);
+        $event = Event::create([
+            "client_id"=>$client_estimate->id,
+            "menu_id"=>$menu_estimate->id,
+            'type' => EventType::OPEN_ESTIMATE->name,
+            "date"=>fake()->dateTimeBetween('now', '+4 months'),
+            "address_id" => random_int(0, 1) == 0 ? $client_estimate->address_id : Address::factory()->create()->id,
+            'guests_amount'=>random_int(30, 100),
+        ]);
+
+        $ingredientService = new CreateMenuEventService();
+        $ingredientService->handle($event, $menu_estimate);
+
+
+
     }
 }

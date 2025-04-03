@@ -41,6 +41,7 @@ class EventController extends Controller
     public function index()
     {
         $events = $this->event
+        ->where('type',EventType::CLOSED_ESTIMATE->name)
             ->with('menu')
             ->with('client')
             ->with('address')
