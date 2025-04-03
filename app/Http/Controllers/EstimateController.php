@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventType;
 use App\Enums\FoodType;
 use App\Enums\MenuInformationType;
 use App\Models\Address;
@@ -29,15 +30,29 @@ class EstimateController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
+        protected Event $event,
         protected MenuHasItem $menu_has_item,
         protected MenuHasRoleQuantity $menu_has_role_quantity,
         protected MenuInformation $menu_information,
 
         protected Client $client,
-        protected Event $event,
         protected Address $address,
     )
-    {
+    {}
+    public function index(){
+        $allEstimates = $this->event
+            ->where('type',EventType::OPEN_ESTIMATE->name)
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->get();
+        return response()->json($allEstimates);
+    }
+
+    public function show(Request $request){
+        $id = $request->estimate_id;
+        $estimate = $this->event->where('id',$id)->get();
+        return response()->json($estimate);
     }
 
     public function create_session(Request $request) {

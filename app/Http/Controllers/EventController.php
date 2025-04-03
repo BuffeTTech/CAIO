@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventType;
 use App\Enums\FoodCategory;
 use App\Enums\FoodType;
 use App\Enums\MatherialType;
@@ -40,6 +41,7 @@ class EventController extends Controller
     public function index()
     {
         $events = $this->event
+        ->where('type',EventType::CLOSED_ESTIMATE->name)
             ->with('menu')
             ->with('client')
             ->with('address')
@@ -69,6 +71,7 @@ class EventController extends Controller
             "menu_id"=>$menu->id,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
             "time"=>fake()->time(),
+            "type"=> EventType::CLOSED_ESTIMATE->name,
             "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
         ]);
