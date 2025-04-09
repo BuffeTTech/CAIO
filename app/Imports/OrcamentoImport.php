@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodProductionType;
 use App\Enums\FoodType;
 use App\Enums\UnitEnum;
 use App\Models\Menu\{Item, Menu, MenuHasItem};
@@ -126,6 +127,10 @@ class ImportSheet implements ToCollection, WithChunkReading
             if (!$row_name || !$row_category || !$row_menu) {
                 return;
             }
+            $productionTying = [
+                FoodProductionType::PRODUCTION->name,
+                FoodProductionType::PRE_PRODUCTION->name
+            ];
 
             $menu = Menu::firstOrCreate(['name' => $row_menu, 'slug'=>sanitize_string($row_menu)]);
             $item = Item::firstOrCreate([
@@ -136,6 +141,7 @@ class ImportSheet implements ToCollection, WithChunkReading
                 "type" => $itemEnum, 
                 "category" => FoodCategory::getEnumByValue($row_category)->name,
                 "consumed_per_client" => $row_consumed_per_client,
+                "production_type"=>$productionTying[rand(0, count($productionTying) -1)],
                 "unit" => $row_unit->name,
             ]);
         
