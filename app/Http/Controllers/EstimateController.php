@@ -50,9 +50,18 @@ class EstimateController extends Controller
     }
 
     public function show(Request $request){
-        $id = $request->estimate_id;
-        $estimate = $this->event->where('id',$id)->get();
-        return response()->json($estimate);
+    $estimate = $this->event
+        ->with('menu')
+        ->with('client')
+        ->with('address')
+        ->where('id', $request->estimate_id)
+        ->get()
+        ->first();
+
+    if(!$estimate) {
+        return response()->json(["data"=>"Invalid event id"], 404);
+    }
+    return response()->json($estimate);
     }
 
     public function create_session(Request $request) {
