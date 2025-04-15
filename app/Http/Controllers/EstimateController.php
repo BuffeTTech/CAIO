@@ -804,5 +804,22 @@ class EstimateController extends Controller
         ]);
 
     }
+
+    public function close_estimate(Request $request){
+        $estimate = $this->event
+        ->where('id', $request->estimate_id)
+        ->first();
+
+        if(!$estimate) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $estimate = $estimate->update([
+            "type" =>EventType::CLOSED_ESTIMATE->name
+        ]);
+        return response()->json([
+            "message"=>"Orçamento Fechado"
+        ]);
+        // return redirect()->route("all_estimates.index");
+    }
     
 }
