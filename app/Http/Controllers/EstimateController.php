@@ -64,6 +64,28 @@ class EstimateController extends Controller
         return response()->json($estimate);
     }
 
+    public function items(Request $request){
+        $id = $request->estimate_id;
+
+        $estimate = $this->event
+        ->with('menu')
+        ->with('client')
+        ->with('address')
+        ->with('menu_event.items.ingredients.ingredient')
+        ->with('menu_event.items.matherials.matherial')
+        ->with('menu_event.items.item')
+        // ->with('menu_event')
+        ->where('id', $id)
+        ->get()
+        ->first();
+
+        if(!$estimate) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+
+        return response()->json($estimate);
+    }
+
     public function create_session(Request $request) {
         $id = $request->user_id;
         if(!$id) {

@@ -42,6 +42,8 @@ Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [Even
 
 Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_estimates.index');
 Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
+Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
+
 Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateController::class, 'close_estimate'])->name('all_estimates.close_estimate');
 
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
