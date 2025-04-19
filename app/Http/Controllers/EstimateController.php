@@ -9,8 +9,14 @@ use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
 use App\Models\Menu\Item;
+use App\Models\Menu\ItemHasIngredient;
+use App\Models\Menu\ItemHasMatherial;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
+use App\Models\MenuEvent\MenuEvent;
+use App\Models\MenuEvent\MenuEventHasItem;
+use App\Models\MenuEvent\MenuEventItemHasIngredient;
+use App\Models\MenuEvent\MenuEventItemHasMatherial;
 use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
 use Exception;
@@ -34,6 +40,12 @@ class EstimateController extends Controller
         protected MenuHasItem $menu_has_item,
         protected MenuHasRoleQuantity $menu_has_role_quantity,
         protected MenuInformation $menu_information,
+        protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
+        protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
+        protected MenuEventHasItem $menu_event_has_item,
+        protected MenuEvent $menu_event,
+        protected ItemHasMatherial $item_has_matherial,
+        protected ItemHasIngredient $item_has_ingredient,
 
         protected Client $client,
         protected Address $address,
@@ -781,6 +793,98 @@ class EstimateController extends Controller
             "address_id"=>$address->id,
             "type"=>EventType::OPEN_ESTIMATE->name,
         ]);
+
+        $menu_event = $this->menu_event->create([
+            "menu_id"=>$menu->id,
+            "event_id"=>$event->id
+        ]);
+
+        // pegando os itens
+        $redisItemsRaw = Redis::hget('session:' . $id, 'items');
+        $redisItems = json_decode($redisItemsRaw, true);
+
+        // Busca os itens originais do menu (somente os do tipo ITEM_INSUMO)
+        $menuItems = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function ($query) {
+                $query->where('type', FoodType::ITEM_INSUMO->name);
+            })
+            ->with('item')
+            ->get()
+            ->pluck('item');
+
+        // Organiza os dados do Redis
+        $addIds = collect();
+        $removeIds = collect();
+        $modifies = collect();
+
+        foreach ($redisItems as $item) {
+            match ($item['type']) {
+                'add'    => $addIds->push($item['id']),
+                'remove' => $removeIds->push($item['id']),
+                'modify' => $modifies->put($item['id'], $item['value']),
+            };
+        }
+
+        // Remove os itens
+        $items = $menuItems->filter(fn($item) => !$removeIds->contains($item->id));
+
+        // Adiciona novos itens (que não estavam originalmente no menu)
+        if ($addIds->isNotEmpty()) {
+            $newItems = $this->items->whereIn('id', $addIds)->get();
+            $items = $items->merge($newItems);
+        }
+
+        // Aplica modificações (preço, quantidade, etc.)
+        $items = $items->map(function ($item) use ($modifies) {
+            if ($modifies->has($item->id)) {
+                $item->price = $modifies->get($item->id); // ou outro campo a ser modificado
+            }
+            return $item;
+        });
+        
+        // salva no banco
+        foreach ($items as $item) {
+            // 1. Salvar na menu_event_has_items
+            $menuEventItem = $this->menu_event_has_item->create([
+                'item_id' => $item->id,
+                'menu_event_id' => $menu_event->id,
+                'consumed_per_client' => $item->consumed_per_client ?? 0, // ajustar conforme necessário
+                'unit' => $item->unit ?? 'UNIT', // usa um valor default se necessário
+            ]);
+        
+            // 2. Buscar materiais do item
+            $materials = $item->matherials ?? $this->item_has_matherial
+                ->where('item_id', $item->id)
+                ->get();
+        
+            foreach ($materials as $matherial) {
+                $this->menu_event_item_has_matherial->create([
+                    'menu_event_has_items_id' => $menuEventItem->id,
+                    'matherial_id' => $matherial->matherial_id,
+                    // 'checked_at' permanece null por padrão
+                ]);
+            }
+        
+            // 3. Buscar ingredientes do item
+            $ingredients = $item->ingredients ?? $this->item_has_ingredient
+                ->where('item_id', $item->id)
+                ->get();
+        
+            foreach ($ingredients as $ingredient) {
+                $this->menu_event_item_has_ingredient->create([
+                    'menu_event_has_items_id' => $menuEventItem->id,
+                    'ingredient_id' => $ingredient->ingredient_id,
+                    'proportion_per_item' => $ingredient->proportion_per_item,
+                    'unit' => $ingredient->unit,
+                    // 'checked_at' permanece null por padrão
+                ]);
+            }
+        }
+        
+        
+
+
 
         Redis::del('session:'.$id);
         
