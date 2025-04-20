@@ -8,6 +8,8 @@ use App\Enums\MenuInformationType;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
+use App\Models\EventInformation;
+use App\Models\EventRoleInformation;
 use App\Models\Menu\Item;
 use App\Models\Menu\ItemHasIngredient;
 use App\Models\Menu\ItemHasMatherial;
@@ -39,6 +41,8 @@ class EstimateController extends Controller
         protected Event $event,
         protected MenuHasItem $menu_has_item,
         protected MenuHasRoleQuantity $menu_has_role_quantity,
+        protected EventRoleInformation $event_role_information,
+        protected EventInformation $event_information,
         protected MenuInformation $menu_information,
         protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
         protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
@@ -815,20 +819,23 @@ class EstimateController extends Controller
         //     'message' => [$eventDate, $event['date'], $event['time'], $event['num_guests']],
         // ], 404);
 
-        $event = $this->event->create([
-            'date'=>$eventDate,
-            'time'=>$event['time'],
-            'guests_amount'=>$event['num_guests'],
-            'client_id'=>$client->id,
-            "menu_id"=>$menu->id,
-            "address_id"=>$address->id,
-            "type"=>EventType::OPEN_ESTIMATE->name,
-        ]);
+        $event = $this->event->find(1);
+        $menu_event = $this->menu_event->find(1);
 
-        $menu_event = $this->menu_event->create([
-            "menu_id"=>$menu->id,
-            "event_id"=>$event->id
-        ]);
+        // $event = $this->event->create([
+        //     'date'=>$eventDate,
+        //     'time'=>$event['time'],
+        //     'guests_amount'=>$event['num_guests'],
+        //     'client_id'=>$client->id,
+        //     "menu_id"=>$menu->id,
+        //     "address_id"=>$address->id,
+        //     "type"=>EventType::OPEN_ESTIMATE->name,
+        // ]);
+
+        // $menu_event = $this->menu_event->create([
+        //     "menu_id"=>$menu->id,
+        //     "event_id"=>$event->id
+        // ]);
 
         // pegando os itens
         $redisItemsRaw = Redis::hget('session:' . $id, 'items');
@@ -882,6 +889,7 @@ class EstimateController extends Controller
                 'menu_event_id' => $menu_event->id,
                 'consumed_per_client' => $item->consumed_per_client ?? 0, // ajustar conforme necessário
                 'unit' => $item->unit ?? 'UNIT', // usa um valor default se necessário
+                'cost'=>$item->cost
             ]);
         
             // 2. Buscar materiais do item
@@ -914,8 +922,37 @@ class EstimateController extends Controller
         }
         
         
+        $redisCostsRaw = Redis::hget('session:' . $id, 'costs');
+        $redisCosts = json_decode($redisCostsRaw, true);
 
+        $employeeCost = [];
+        $generalCost = [];
+        foreach($redisCosts as $cost) {
+            if($cost['type'] == MenuInformationType::EMPLOYEES->name) {
+                array_push($employeeCost, $cost);
+            } else {
+                array_push($generalCost, $cost);
+            }
+        }
 
+        foreach ($employeeCost as $cost) {
+            $this->event_role_information->create([
+                'event_id' => $event->id, // ID do evento
+                'menu_has_role_quantities_id' => $cost['id'], // ID do papel (role)
+                'quantity' => $cost['quantity'], // Quantidade
+                'unit_price' => $cost['unit_price'], // Preço unitário
+            ]);
+        }
+        
+        // Inserir os dados do generalCost no event_information
+        foreach ($generalCost as $cost) {
+            $this->event_information->create([
+                'event_id' => $event->id, // ID do evento
+                'menu_information_id' => $cost['id'], // ID da informação
+                'quantity' => $cost['quantity'], // Quantidade
+                'unit_price' => $cost['unit_price'], // Preço unitário
+            ]);
+        }
 
         Redis::del('session:'.$id);
         

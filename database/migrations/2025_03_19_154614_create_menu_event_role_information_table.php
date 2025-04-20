@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('menu_event_role_information', function (Blueprint $table) {
+        Schema::create('event_role_information', function (Blueprint $table) {
             $table->id();
+            $table->float('unit_price');
+            $table->float('quantity'); // default value of itme
+            $table->foreignId('menu_has_role_quantities_id')->constrained('menu_has_role_quantities')->onDelete('cascade'); // role information
+            $table->foreignId('event_id')->constrained()->onDelete('cascade'); 
             $table->timestamps();
         });
     }

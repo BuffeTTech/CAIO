@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class MenuEventRoleInformation extends Model
+class EventInformation extends Model
 {
-    //
+    protected $guarded = [];
 }

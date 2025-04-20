@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('menu_event_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('item_id')->constrained()->onDelete('cascade'); 
             $table->dateTime('checked_at')->nullable()->default(null); 
+            $table->double('cost');
 
             $table->float('consumed_per_client');
             $table->enum('unit', array_column(UnitEnum::cases(),'name'));

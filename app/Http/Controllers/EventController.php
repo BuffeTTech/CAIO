@@ -178,7 +178,8 @@ class EventController extends Controller
         $item = $this->menu_event_has_item->create([
             "menu_event_id"=>$menu_event->id,
             "item_id"=>$request->item_id,
-            "checked_at"=>null
+            "checked_at"=>null,
+            'cost'=>$item->cost
         ]);
 
         return response()->json("",201);

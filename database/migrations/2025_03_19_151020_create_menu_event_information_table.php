@@ -11,11 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('menu_event_information', function (Blueprint $table) {
+        Schema::create('event_information', function (Blueprint $table) {
             $table->id();
-            $table->float('price');
+            $table->float('unit_price');
             $table->float('quantity'); // default value of itme
             $table->foreignId('menu_information_id')->constrained('menu_information')->onDelete('cascade'); // role information
+            $table->foreignId('event_id')->constrained()->onDelete('cascade'); 
             $table->timestamps();
         });
     }
