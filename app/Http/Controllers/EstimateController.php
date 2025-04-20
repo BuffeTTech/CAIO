@@ -815,27 +815,21 @@ class EstimateController extends Controller
         ]);
 
         $eventDate = date('Y-m-d', strtotime($event['date']));
-        // return response()->json([
-        //     'message' => [$eventDate, $event['date'], $event['time'], $event['num_guests']],
-        // ], 404);
 
-        $event = $this->event->find(1);
-        $menu_event = $this->menu_event->find(1);
+        $event = $this->event->create([
+            'date'=>$eventDate,
+            'time'=>$event['time'],
+            'guests_amount'=>$event['num_guests'],
+            'client_id'=>$client->id,
+            "menu_id"=>$menu->id,
+            "address_id"=>$address->id,
+            "type"=>EventType::OPEN_ESTIMATE->name,
+        ]);
 
-        // $event = $this->event->create([
-        //     'date'=>$eventDate,
-        //     'time'=>$event['time'],
-        //     'guests_amount'=>$event['num_guests'],
-        //     'client_id'=>$client->id,
-        //     "menu_id"=>$menu->id,
-        //     "address_id"=>$address->id,
-        //     "type"=>EventType::OPEN_ESTIMATE->name,
-        // ]);
-
-        // $menu_event = $this->menu_event->create([
-        //     "menu_id"=>$menu->id,
-        //     "event_id"=>$event->id
-        // ]);
+        $menu_event = $this->menu_event->create([
+            "menu_id"=>$menu->id,
+            "event_id"=>$event->id
+        ]);
 
         // pegando os itens
         $redisItemsRaw = Redis::hget('session:' . $id, 'items');
