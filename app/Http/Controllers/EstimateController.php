@@ -62,8 +62,39 @@ class EstimateController extends Controller
     }
 
     public function show(Request $request){
+        $estimate = $this->event
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->where('id', $request->estimate_id)
+            ->get()
+            ->first();
+
+        if(!$estimate) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        return response()->json($estimate);
+    }
+
+    public function items(Request $request){
         $id = $request->estimate_id;
-        $estimate = $this->event->where('id',$id)->get();
+
+        $estimate = $this->event
+        ->with('menu')
+        ->with('client')
+        ->with('address')
+        ->with('menu_event.items.ingredients.ingredient')
+        ->with('menu_event.items.matherials.matherial')
+        ->with('menu_event.items.item')
+        // ->with('menu_event')
+        ->where('id', $id)
+        ->get()
+        ->first();
+
+        if(!$estimate) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+
         return response()->json($estimate);
     }
 
@@ -898,6 +929,23 @@ class EstimateController extends Controller
             // ],
         ]);
 
+    }
+
+    public function close_estimate(Request $request){
+        $estimate = $this->event
+        ->where('id', $request->estimate_id)
+        ->first();
+
+        if(!$estimate) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $estimate = $estimate->update([
+            "type" =>EventType::CLOSED_ESTIMATE->name
+        ]);
+        return response()->json([
+            "message"=>"Orçamento Fechado"
+        ]);
+        // return redirect()->route("all_estimates.index");
     }
     
 }
