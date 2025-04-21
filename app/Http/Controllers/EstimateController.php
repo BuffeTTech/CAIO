@@ -54,6 +54,7 @@ class EstimateController extends Controller
         protected ItemHasMatherial $item_has_matherial,
         protected ItemHasIngredient $item_has_ingredient,
         protected EventPricing $event_pricing,
+        protected EventItemsFlow $eventItemsFlow,
 
         protected Client $client,
         protected Address $address,
@@ -71,18 +72,31 @@ class EstimateController extends Controller
     }
 
     public function show(Request $request){
-        $estimate = $this->event
+        $estimate_id = $request->estimate_id;
+
+        $event = $this->event
             ->with('menu')
             ->with('client')
             ->with('address')
-            ->where('id', $request->estimate_id)
+            ->where('id', $estimate_id)
             ->get()
             ->first();
 
-        if(!$estimate) {
+        if(!$event) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
-        return response()->json($estimate);
+
+        $menu_event = $this->menu_event->where('event_id', $estimate_id)->get()->first();
+        $items = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->whereHas('eventItemsFlow')
+            ->get();
+        
+        
+        return response()->json([
+            'event'=>$event,
+            'changedItems'=>$items
+        ]);
     }
 
     public function items(Request $request){
@@ -100,11 +114,21 @@ class EstimateController extends Controller
         ->get()
         ->first();
 
+        $menu_event = $this->menu_event->where('event_id', $id)->get()->first();
+        $items = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->whereHas('eventItemsFlow')
+            ->with('eventItemsFlow')
+            ->with('item')
+            ->get();
         if(!$estimate) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
 
-        return response()->json($estimate);
+        return response()->json([
+            'estimate' =>$estimate,
+            'changedItems'=>$items
+        ]);
     }
 
     public function create_session(Request $request) {
@@ -874,7 +898,7 @@ class EstimateController extends Controller
 
         // Indica os itens que foram removidos e adicionados no menu
         foreach($removeIds as $removeId) {
-            EventItemsFlow::create([
+            $removeIds = EventItemsFlow::create([
                 'menu_event_has_item_id'=> $removeId,
                 "status"=> ItemFlowType::REMOVED->name,
             ]);
@@ -1118,6 +1142,71 @@ class EstimateController extends Controller
         Redis::hset($key, 'items', json_encode($data));
         return response()->json([
             'message' => 'Item modified successfully',
+        ]);
+    }
+
+    public function get_estimate_costs(Request $request) {
+        $estimate_id = $request->estimate_id;
+        if(!$estimate_id) {
+            return response()->json([
+                'message' => 'Please provide an estimate_id'
+            ], 400);
+        }
+        $estimate = $this->event
+        ->where('id', $estimate_id)
+        ->where('type', EventType::OPEN_ESTIMATE->name)
+        ->first();
+        if(!$estimate) {
+            return response()->json([
+                'message' => 'Invalid estimate id'
+            ], 404);
+        }
+        // $event_role_information = $this->event_role_information
+        // ->where('event_id', $estimate->id)
+        // ->with('menu_has_role_quantities')
+        // ->get();
+        // $event_information = $this->event_information
+        // ->where('event_id', $estimate->id)
+        // ->with('menu_information')
+        // ->get();
+        // $event_information = collect($event_information->map(function($information) {
+        //     return [
+        //         'id' => $information->menu_information->id, // id do relacionamento
+        //         'name' => $information->menu_information->name,
+        //         'unit_price' => $information->menu_information->price,
+        //         'quantity' => $information->quantity,
+        //         'created_at' => $information->menu_information->created_at,
+        //         'updated_at' => $information->menu_information->updated_at,
+        //         'type' => $information->menu_information->type
+        //     ];
+        // }));
+        // $event_role_information = collect($event_role_information->map(function($information) {
+        //     return [
+        //         'id' => $information->menu_has_role_quantities->id, // id do relacionamento
+        //         'name' => $information->menu_has_role_quantities->role->name,
+        //         'unit_price' => $information->menu_has_role_quantities->role->price,
+        //         'quantity' => $information->quantity,
+        //         'created_at' => $information->menu_has_role_quantities->created_at,
+        //         'updated_at' => $information->menu_has_role_quantities->updated_at,
+        //         'type' => MenuInformationType::EMPLOYEES->name
+        //     ];
+        // }));
+
+        return response()->json([
+            'message' => 'Estimate found successfully',
+            'data'=>[
+                'costs'=>[],
+                'prices'=>[
+                    'profit'=>$estimate->event_pricing->profit,
+                    'agency'=>$estimate->event_pricing->agency,
+                    'data_cost'=>$estimate->event_pricing->data_cost,
+                    'fixed_cost'=>$estimate->event_pricing->fixed_cost,
+                    'total'=>$estimate->event_pricing->total,
+                ],
+                "general"=>[
+                    "num_guests"=>$estimate->guests_amount,
+                ]
+            ],
         ]);
     }
     

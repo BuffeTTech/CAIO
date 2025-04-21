@@ -34,7 +34,7 @@ class EventController extends Controller
         protected MenuEvent $menu_event,
         protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
         protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
-        protected MenuEventHasItem $menu_event_has_item,
+        protected MenuEventHasItem $menu_event_has_item
     ){}
     /**
      * Display a listing of the resource.
@@ -96,19 +96,22 @@ class EventController extends Controller
      * Display the specified resource.
      */
     public function show(Request $request)
-    {
+    {   
+        $event_id = $request->event_id;
+
         $event = $this->event
             ->with('menu')
             ->with('client')
             ->with('address')
-            ->where('id', $request->event_id)
+            ->where('id', $event_id)
             ->get()
             ->first();
 
         if(!$event) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
-        
+
+
         return response()->json($event);
     }
 

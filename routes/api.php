@@ -49,8 +49,9 @@ Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateControlle
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
 Route::get('/estimate/add-item',  [EstimateController::class, 'add_item_session'])->name('estimate.add_item_session');
 Route::get('/estimate/menu/{menu_slug}/costs',  [EstimateController::class, 'get_menu_costs'])->name('estimate.get_menu_costs');
-Route::patch('/estimate/costs',  [EstimateController::class, 'change_cost_data'])->name('estimate.change_cost_data');
 Route::patch('/estimate/change-guests',  [EstimateController::class, 'change_guests'])->name('estimate.change_guests');
+Route::get('/estimate/costs/{estimate_id}',  [EstimateController::class, 'get_estimate_costs'])->name('estimate.get_estimate_costs');
+Route::patch('/estimate/costs',  [EstimateController::class, 'change_cost_data'])->name('estimate.change_cost_data');
 Route::post('/estimate/change-menu',  [EstimateController::class, 'change_menu_session'])->name('estimate.change_menu_session');
 Route::post('/estimate/add-item', [EstimateController::class, 'store_item_session'])->name('estimate.store_item_session');
 Route::delete('/estimate/item/{item_id}', [EstimateController::class, 'remove_item_session'])->name('estimate.remove_item_session');

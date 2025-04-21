@@ -2,6 +2,7 @@
 
 namespace App\Models\MenuEvent;
 
+use App\Models\EventItemsFlow;
 use App\Models\Menu\Item;
 use Illuminate\Database\Eloquent\Model;
 
@@ -26,5 +27,9 @@ class MenuEventHasItem extends Model
     public function matherials()
     {
         return $this->hasMany(MenuEventItemHasMatherial::class, 'menu_event_has_items_id');
+    }
+    public function eventItemsFlow()
+    {
+        return $this->hasMany(EventItemsFlow::class, 'menu_event_has_item_id'); // Nome correto da coluna
     }
 }
