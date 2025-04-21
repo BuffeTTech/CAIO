@@ -54,6 +54,7 @@ Route::patch('/estimate/change-guests',  [EstimateController::class, 'change_gue
 Route::post('/estimate/change-menu',  [EstimateController::class, 'change_menu_session'])->name('estimate.change_menu_session');
 Route::post('/estimate/add-item', [EstimateController::class, 'store_item_session'])->name('estimate.store_item_session');
 Route::delete('/estimate/item/{item_id}', [EstimateController::class, 'remove_item_session'])->name('estimate.remove_item_session');
+Route::put('/estimate/item/{item_id}', [EstimateController::class, 'change_item_consumed_per_client'])->name('estimate.change_item_consumed_per_client');
 Route::get('/estimate/menu/{menu_slug}',  [EstimateController::class, 'show_menu_items'])->name('estimate.show_menu_items');
 
 Route::post('/estimate/save', [EstimateController::class, 'save_estimate'])->name('estimate.save_estimate');

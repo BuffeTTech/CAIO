@@ -300,7 +300,7 @@ class EstimateController extends Controller
         // Modify items
         $items = $items->map(function ($item) use ($modifies) {
             if (isset($modifies[$item->id])) {
-                $item->price = $modifies[$item->id];
+                $item->consumed_per_client = $modifies[$item->id];
             }
             return $item;
         });
@@ -870,7 +870,7 @@ class EstimateController extends Controller
         // Aplica modificações (preço, quantidade, etc.)
         $items = $items->map(function ($item) use ($modifies) {
             if ($modifies->has($item->id)) {
-                $item->price = $modifies->get($item->id); // ou outro campo a ser modificado
+                $item->consumed_per_client = $modifies->get($item->id); // ou outro campo a ser modificado
             }
             return $item;
         });
@@ -977,6 +977,107 @@ class EstimateController extends Controller
             "message"=>"Orçamento Fechado"
         ]);
         // return redirect()->route("all_estimates.index");
+    }
+
+    public function change_item_consumed_per_client(Request $request) {
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
+
+        $item = $request->item_id;
+        if(!$item) {
+            return response()->json([
+                'message' => 'Please provide an item'
+            ], 400);
+        }
+        $item = $this->items->where('id', $item)->get()->first();
+        if(!$item) {
+            return response()->json([
+                'message' => 'Invalid item id'
+            ], 404);
+        }
+        $consumed_per_client = $request->value;
+        if(!$consumed_per_client) {
+            return response()->json([
+                'message' => 'Please provide a consumed_per_client'
+            ], 400);
+        }
+        if(!is_numeric($consumed_per_client) || $consumed_per_client < 0) {
+            return response()->json([
+                'message' => 'Invalid consumed_per_client'
+            ], 422);
+        }
+        $key = 'session:'.$id;
+        $existsInRedis = Redis::exists($key);
+        if(!$existsInRedis) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 422);
+        }
+        $data = Redis::hget($key, 'items');
+        $data = json_decode($data, true);
+        if (!is_array($data)) {
+            return response()->json([
+                'message' => 'Invalid items data'
+            ], 400);
+        }
+        $found = false;
+        foreach ($data as &$itemData) {
+            if($itemData['id'] === $item->id && $itemData['type'] === 'remove') {
+                // remover o item 
+                $index = array_search($itemData['id'], array_column($data, 'id'));
+                if ($index !== false) {
+                    array_splice($data, $index, 1);
+                }
+                $itemData['type'] = 'modify'; // Atualiza o tipo para 'modify'
+                $itemData['value'] = $consumed_per_client; // Atualiza o valor
+                $found = true;
+                break; // Interrompe o loop
+            }
+            if ($itemData['id'] === $item && $itemData['type'] === 'modify') {
+                $itemData['value'] = $consumed_per_client; // Atualiza o valor
+                $found = true;
+                break; // Interrompe o loop
+            }
+        }
+        if($found) {
+            Redis::hset($key, 'items', json_encode($data));
+            return response()->json([
+                'message' => 'Item modified successfully',
+            ]);
+        }
+
+        $menu_slug = Redis::hget($key, 'menu');
+        if(!$menu_slug) {
+            return response()->json([
+                'message' => 'Menu not found'
+            ], 404);
+        }
+        $menu = $this->menu->where('slug', $menu_slug)->first();
+        if (!$menu) {
+            return response()->json(["data" => "Invalid menu slug"], 404);
+        }
+
+        $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item->id)->get()->first();
+        $exist_in_redis = in_array($item['id'], array_column($data, 'id'));
+        if(!$exist_in_original_menu && !$exist_in_redis) {
+            return response()->json([
+                'message' => 'Item not found'
+            ], 400);
+        }
+        $data[] = [
+            'id'=>$item->id,
+            "type"=>'modify',
+            "value"=>$consumed_per_client
+        ];
+
+        Redis::hset($key, 'items', json_encode($data));
+        return response()->json([
+            'message' => 'Item modified successfully',
+        ]);
     }
     
 }
