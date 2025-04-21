@@ -755,7 +755,6 @@ class EstimateController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            // Validações para o endereço
             'address.zipcode' => ['required', 'regex:/^\d{5}-\d{3}$/'], // Valida o formato do CEP (xxxxx-xxx)
             'address.street' => ['required', 'string', 'max:255'],
             'address.number' => ['required', 'string', 'max:10'],
@@ -764,17 +763,14 @@ class EstimateController extends Controller
             'address.city' => ['required', 'string', 'max:255'],
             'address.complement' => ['nullable', 'string', 'max:255'], // Campo opcional
         
-            // Validações para os detalhes do usuário
             'details.name' => ['required', 'string', 'max:255'],
             'details.email' => ['required', 'email', 'max:255'], // Valida o formato de email
             'details.phone' => ['required', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'], // Valida o formato do telefone (xx) xxxxx-xxxx
         
-            // Validações para o evento
             'event.date' => ['required', 'date'], // Valida se é uma data válida
             'event.time' => ['required', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'], // Valida o formato HH:mm
-            'event.num_guests' => ['required', 'integer', 'min:1'], // Número de convidados deve ser maior que 0
+            // 'event.num_guests' => ['required', 'integer', 'min:1'], // Número de convidados deve ser maior que 0
         
-            // Validação para o ID do usuário
             'user_id' => ['required', 'uuid'], // Valida o formato UUID
         ]);
     
@@ -836,7 +832,8 @@ class EstimateController extends Controller
         $event = $this->event->create([
             'date'=>$eventDate,
             'time'=>$event['time'],
-            'guests_amount'=>$event['num_guests'],
+            // 'guests_amount'=>$event['num_guests'],
+            'guests_amount'=>$data['guests'],
             'client_id'=>$client->id,
             "menu_id"=>$menu->id,
             "address_id"=>$address->id,
