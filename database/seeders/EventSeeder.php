@@ -6,6 +6,7 @@ use App\Enums\EventType;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
+use App\Models\EventPricing;
 use App\Models\Menu\Menu;
 use App\Services\CreateMenuEventService;
 use Carbon\Carbon;
@@ -30,6 +31,14 @@ class EventSeeder extends Seeder
             "address_id" => random_int(0, 1) == 0 ? $client_event->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
         ]);
+        EventPricing::create([
+            'event_id' => $event->id,
+            'profit' => 0,
+            'agency' => 0,
+            'data_cost' => 0,
+            'fixed_cost' => 0,
+            'total' => 0,
+        ]);
 
         $ingredientService = new CreateMenuEventService();
         $ingredientService->handle($event, $menu_event);
@@ -45,6 +54,14 @@ class EventSeeder extends Seeder
             "time"=>fake()->time(),
             "address_id" => random_int(0, 1) == 0 ? $client_estimate->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
+        ]);
+        EventPricing::create([
+            'event_id' => $event->id,
+            'profit' => 0,
+            'agency' => 0,
+            'data_cost' => 0,
+            'fixed_cost' => 0,
+            'total' => 0,
         ]);
 
         $ingredientService = new CreateMenuEventService();

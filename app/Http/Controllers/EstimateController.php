@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventType;
 use App\Enums\FoodType;
+use App\Enums\ItemFlowType;
 use App\Enums\MenuInformationType;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
 use App\Models\EventInformation;
+use App\Models\EventItemsFlow;
+use App\Models\EventPricing;
 use App\Models\EventRoleInformation;
 use App\Models\Menu\Item;
 use App\Models\Menu\ItemHasIngredient;
@@ -50,6 +53,7 @@ class EstimateController extends Controller
         protected MenuEvent $menu_event,
         protected ItemHasMatherial $item_has_matherial,
         protected ItemHasIngredient $item_has_ingredient,
+        protected EventPricing $event_pricing,
 
         protected Client $client,
         protected Address $address,
@@ -61,6 +65,7 @@ class EstimateController extends Controller
             ->with('menu')
             ->with('client')
             ->with('address')
+            ->with('event_pricing')
             ->get();
         return response()->json($allEstimates);
     }
@@ -780,6 +785,18 @@ class EstimateController extends Controller
             ], 422);
         }
 
+        $prices = $request->prices;
+        if(!$prices) {
+            return response()->json([
+                'message' => 'Please provide the prices'
+            ], 400);
+        }
+        if(!is_array($prices) || !isset($prices['profit']) || !isset($prices['agency'] )|| !isset($prices['cost']) || !isset($prices['data_cost'])) {
+            return response()->json([
+                'message' => 'Invalid prices'
+            ], 400);
+        }
+
         $address = $request->address;
         $details = $request->details;
         $event = $request->event;
@@ -858,14 +875,28 @@ class EstimateController extends Controller
             };
         }
 
-        // Remove os itens
-        $items = $menuItems->filter(fn($item) => !$removeIds->contains($item->id));
+        // Indica os itens que foram removidos e adicionados no menu
+        foreach($removeIds as $removeId) {
+            EventItemsFlow::create([
+                'menu_event_has_item_id'=> $removeId,
+                "status"=> ItemFlowType::REMOVED->name,
+            ]);
+        }
+        foreach($addIds as $item){
+            $newItems = EventItemsFlow::create([
+                'menu_event_has_item_id' =>$item,
+                "status"=> ItemFlowType::INSERTED->name,
+            ]);
+        }
 
+        
+        $items = $menuItems->filter(fn($item) => !$removeIds->contains($item->id));
         // Adiciona novos itens (que não estavam originalmente no menu)
         if ($addIds->isNotEmpty()) {
             $newItems = $this->items->whereIn('id', $addIds)->get();
             $items = $items->merge($newItems);
         }
+        
 
         // Aplica modificações (preço, quantidade, etc.)
         $items = $items->map(function ($item) use ($modifies) {
@@ -915,7 +946,6 @@ class EstimateController extends Controller
             }
         }
         
-        
         $redisCostsRaw = Redis::hget('session:' . $id, 'costs');
         $redisCosts = json_decode($redisCostsRaw, true);
 
@@ -947,6 +977,20 @@ class EstimateController extends Controller
                 'unit_price' => $cost['unit_price'], // Preço unitário
             ]);
         }
+
+        $fixed_cost = $prices['cost'] - $prices['data_cost'];
+        $pre_total = $prices['cost'] + $prices['profit'];
+
+        $total = ($pre_total * $prices['agency'] / 100) + $pre_total;
+
+        $this->event_pricing->create([
+            'event_id' => $event->id,
+            'profit' => $prices['profit'],
+            'agency' => $prices['agency'],
+            'data_cost' => $prices['data_cost'],
+            'fixed_cost' => $fixed_cost,
+            'total' => $total,
+        ]);
 
         Redis::del('session:'.$id);
         

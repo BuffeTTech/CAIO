@@ -11,6 +11,7 @@ use App\Http\Requests\UpdateEventRequest;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
+use App\Models\EventPricing;
 use App\Models\Menu\Ingredient;
 use App\Models\Menu\Item;
 use App\Models\Menu\Matherial;
@@ -74,6 +75,15 @@ class EventController extends Controller
             "type"=> EventType::CLOSED_ESTIMATE->name,
             "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
+        ]);
+
+        EventPricing::create([
+            'event_id' => $event->id,
+            'profit' => 0,
+            'agency' => 0,
+            'data_cost' => 0,
+            'fixed_cost' => 0,
+            'total' => 0,
         ]);
 
         $ingredientService = new CreateMenuEventService();
