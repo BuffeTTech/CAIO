@@ -1182,7 +1182,7 @@ class EstimateController extends Controller
             return [
                 'id' => $information->menu_information->id, // id do relacionamento
                 'name' => $information->menu_information->name,
-                'unit_price' => $information->menu_information->price,
+                'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
                 'created_at' => $information->menu_information->created_at,
                 'updated_at' => $information->menu_information->updated_at,
@@ -1193,7 +1193,7 @@ class EstimateController extends Controller
             return [
                 'id' => $information->menu_has_role_quantities->id, // id do relacionamento
                 'name' => $information->menu_has_role_quantities->quantity->role->name,
-                'unit_price' => $information->menu_has_role_quantities->quantity->role->price,
+                'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
                 'created_at' => $information->menu_has_role_quantities->created_at,
                 'updated_at' => $information->menu_has_role_quantities->updated_at,

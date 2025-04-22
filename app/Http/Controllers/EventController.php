@@ -122,7 +122,6 @@ class EventController extends Controller
             return response()->json(["data"=>"Invalid event id"], 404);
         }
 
-        dd($event);
         return response()->json($event);
     }
 
