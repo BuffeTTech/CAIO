@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\EventType;
 use App\Enums\FoodCategory;
 use App\Enums\FoodProductionType;
 use App\Enums\FoodType;
@@ -11,6 +12,7 @@ use App\Http\Requests\UpdateEventRequest;
 use App\Models\Address;
 use App\Models\Client;
 use App\Models\Event;
+use App\Models\EventPricing;
 use App\Models\Menu\Ingredient;
 use App\Models\Menu\Item;
 use App\Models\Menu\Matherial;
@@ -33,7 +35,7 @@ class EventController extends Controller
         protected MenuEvent $menu_event,
         protected MenuEventItemHasIngredient $menu_event_item_has_ingredient,
         protected MenuEventItemHasMatherial $menu_event_item_has_matherial,
-        protected MenuEventHasItem $menu_event_has_item,
+        protected MenuEventHasItem $menu_event_has_item
     ){}
     /**
      * Display a listing of the resource.
@@ -41,6 +43,7 @@ class EventController extends Controller
     public function index()
     {
         $events = $this->event
+        ->where('type',EventType::CLOSED_ESTIMATE->name)
             ->with('menu')
             ->with('client')
             ->with('address')
@@ -69,8 +72,19 @@ class EventController extends Controller
             "client_id"=>$client->id,
             "menu_id"=>$menu->id,
             "date"=>fake()->dateTimeBetween('now', '+4 months'),
+            "time"=>fake()->time(),
+            "type"=> EventType::CLOSED_ESTIMATE->name,
             "address_id" => random_int(0, 1) == 0 ? $client->address_id : Address::factory()->create()->id,
             'guests_amount'=>random_int(30, 100),
+        ]);
+
+        EventPricing::create([
+            'event_id' => $event->id,
+            'profit' => 0,
+            'agency' => 0,
+            'data_cost' => 0,
+            'fixed_cost' => 0,
+            'total' => 0,
         ]);
 
         $ingredientService = new CreateMenuEventService();
@@ -83,19 +97,22 @@ class EventController extends Controller
      * Display the specified resource.
      */
     public function show(Request $request)
-    {
+    {   
+        $event_id = $request->event_id;
+
         $event = $this->event
             ->with('menu')
             ->with('client')
             ->with('address')
-            ->where('id', $request->event_id)
+            ->where('id', $event_id)
             ->get()
             ->first();
 
         if(!$event) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
-        
+
+
         return response()->json($event);
     }
 
@@ -175,7 +192,8 @@ class EventController extends Controller
         $item = $this->menu_event_has_item->create([
             "menu_event_id"=>$menu_event->id,
             "item_id"=>$request->item_id,
-            "checked_at"=>null
+            "checked_at"=>null,
+            'cost'=>$item->cost
         ]);
 
         return response()->json("",201);

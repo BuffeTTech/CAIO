@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\IngredientController;
 use App\Http\Controllers\MatherialController;
@@ -14,6 +15,7 @@ Route::get('/user', function (Request $request) {
 # Menu Routes
 Route::get('/menu',  [MenuController::class, 'index']);
 Route::get('/menu/{menu_slug}',  [MenuController::class, 'show'])->name('menu.show');
+Route::get('/menu/{menu_slug}/items',  [MenuController::class, 'show_items'])->name('menu.show_items');
 Route::delete('/menu/items/{item_id}/ingredients/{id}',  [IngredientController::class, 'destroy'])->name('ingredient.destroy');
 Route::delete('/menu/items/{item_id}/matherials/{id}',  [MatherialController::class, 'destroy'])->name('matherial.destroy');
 Route::delete('/menu/{menu_slug}/item/{item_id}',  [MenuController::class, 'remove_item_from_menu'])->name('menu.remove_item_from_menu');
@@ -38,4 +40,25 @@ Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remo
 Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
 Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');
 
+Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_estimates.index');
+Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
+Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
+
+Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateController::class, 'close_estimate'])->name('all_estimates.close_estimate');
+
+Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
+Route::get('/estimate/add-item',  [EstimateController::class, 'add_item_session'])->name('estimate.add_item_session');
+Route::get('/estimate/menu/{menu_slug}/costs',  [EstimateController::class, 'get_menu_costs'])->name('estimate.get_menu_costs');
+Route::patch('/estimate/change-guests',  [EstimateController::class, 'change_guests'])->name('estimate.change_guests');
+Route::get('/estimate/costs/{estimate_id}',  [EstimateController::class, 'get_estimate_costs'])->name('estimate.get_estimate_costs');
+Route::patch('/estimate/costs',  [EstimateController::class, 'change_cost_data'])->name('estimate.change_cost_data');
+Route::post('/estimate/change-menu',  [EstimateController::class, 'change_menu_session'])->name('estimate.change_menu_session');
+Route::post('/estimate/add-item', [EstimateController::class, 'store_item_session'])->name('estimate.store_item_session');
+Route::delete('/estimate/item/{item_id}', [EstimateController::class, 'remove_item_session'])->name('estimate.remove_item_session');
+Route::put('/estimate/item/{item_id}', [EstimateController::class, 'change_item_consumed_per_client'])->name('estimate.change_item_consumed_per_client');
+Route::get('/estimate/menu/{menu_slug}',  [EstimateController::class, 'show_menu_items'])->name('estimate.show_menu_items');
+
+Route::post('/estimate/save', [EstimateController::class, 'save_estimate'])->name('estimate.save_estimate');
+
+Route::get('/estimate/user/{user_id}',  [EstimateController::class, 'get_session_by_user'])->name('estimate.get_session_by_user');
 Route::get('/event/{event_id}/production_list',  [EventController::class, 'production_list'])->name('event.production_list');

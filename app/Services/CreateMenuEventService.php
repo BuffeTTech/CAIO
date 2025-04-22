@@ -42,6 +42,7 @@ class CreateMenuEventService
                     "checked_at" => null,
                     "consumed_per_client"=>$item->item->consumed_per_client,
                     "unit"=>$item->item->unit,
+                    'cost'=>$item->item->cost
                 ]);
                 // Associar os ingredientes ao item recém-criado
                 foreach ($item->item->ingredients as $ingredient) {

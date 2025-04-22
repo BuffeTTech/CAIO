@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EventType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,9 +16,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('client_id')->constrained()->onDelete('cascade'); 
             $table->foreignId('menu_id')->constrained()->onDelete('cascade');
-            $table->foreignId('address_id')->onDelete('cascade'); 
+            $table->foreignId('address_id')->onDelete('cascade');
+            $table->enum('type', array_column(EventType::cases(),'name'));
             $table->integer('guests_amount');
-            $table->dateTime('date'); 
+            $table->date('date'); 
+            $table->time('time'); 
             $table->timestamps();
         });
     }

@@ -6,7 +6,6 @@ use App\Enums\FoodType;
 use App\Http\Requests\StoreMenuRequest;
 use App\Http\Requests\UpdateMenuRequest;
 use App\Models\Menu\Item;
-use App\Models\FixedItems;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
 use Illuminate\Http\Request;
@@ -16,7 +15,6 @@ class MenuController extends Controller
     public function __construct(
         protected Menu $menu,
         protected Item $items,
-        protected FixedItems $fixedItems,
         protected MenuHasItem $menu_has_item,
     )
     {
@@ -187,6 +185,27 @@ class MenuController extends Controller
         
         return response()->json('deletado com sucesso!');
         return back()->with('message', "Material deletado com sucesso!");
+    }
+
+    # Items
+    public function show_items(Request $request) {
+        $menu = $this->menu->where('slug', $request->menu_slug)->get()->first();
+        if(!$menu) {
+            return response()->json(["data"=>"Invalid menu slug"], 404);
+        }
+        $items = $this->menu_has_item
+            ->where('menu_id', $menu->id)
+            ->whereHas('item', function($query) {
+                $query->where('type', FoodType::ITEM_INSUMO->name);
+            })
+            ->with([
+                'item',
+            ])
+            ->get()
+            ->pluck('item');
+        
+
+        return response()->json($items);
     }
     
 }
