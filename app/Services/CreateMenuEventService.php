@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\FoodProductionType;
 use App\Models\Event;
 use App\Models\Menu\Menu;
 use App\Models\Menu\MenuHasItem;
@@ -31,6 +32,7 @@ class CreateMenuEventService
             $menuItems = [];
             $ingredients = [];
             $matherials = [];
+
 
             // Criar os itens primeiro para obter os IDs gerados
             foreach ($items as $item) {

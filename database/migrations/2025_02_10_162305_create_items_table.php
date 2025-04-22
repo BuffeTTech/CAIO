@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\FoodCategory;
+use App\Enums\FoodProductionType;
 use App\Enums\FoodType;
 use App\Enums\UnitEnum;
 use Illuminate\Database\Migrations\Migration;
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->double('cost');
             $table->enum('type', array_column(FoodType::cases(),'name'));
             $table->enum('category', array_column(FoodCategory::cases(),'name'));
+            $table->enum('production_type',array_column(FoodProductionType::cases(),'name'));
             $table->float('consumed_per_client');
             $table->enum('unit', array_column(UnitEnum::cases(),'name'));
             $table->timestamps();

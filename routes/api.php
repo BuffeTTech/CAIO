@@ -61,4 +61,4 @@ Route::get('/estimate/menu/{menu_slug}',  [EstimateController::class, 'show_menu
 Route::post('/estimate/save', [EstimateController::class, 'save_estimate'])->name('estimate.save_estimate');
 
 Route::get('/estimate/user/{user_id}',  [EstimateController::class, 'get_session_by_user'])->name('estimate.get_session_by_user');
-Route::get('/teste', [EstimateController::class, 'teste']);
+Route::get('/event/{event_id}/production_list',  [EventController::class, 'production_list'])->name('event.production_list');

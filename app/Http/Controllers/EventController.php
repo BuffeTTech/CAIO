@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\EventType;
 use App\Enums\FoodCategory;
+use App\Enums\FoodProductionType;
 use App\Enums\FoodType;
 use App\Enums\MatherialType;
 use App\Http\Requests\StoreEventRequest;
@@ -315,7 +316,56 @@ class EventController extends Controller
     
 
         
-        return response()->json(['event'=>$event,"eventIngredients"=>$eventIngredientsByCategory]);
+        // return response()->json(['event'=>$event,"eventIngredients"=>$eventIngredientsByCategory]);
+    }
+
+    public function production_list(Request $request){
+        $id = $request->event_id;
+
+        $event = $this->event->find($id);
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+
+        $menu_event = $this->menu_event->where('event_id', $event->id)->get()->first();
+        if(!$menu_event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $type = $request->type;
+
+        if(!$type) {
+            $type = "by_production";
+        } else if($type && !in_array($type, ["by_pre_production","by_production"])) {
+            return response()->json(["data"=>"Invalid type"], 404);
+        } 
+        $eventItemsbyProductionType = [];
+        if($type == "by_production") {
+            $eventItemsbyProductionType = $this->menu_event_has_item
+            ->where('menu_event_id', $id)
+            ->whereHas('item', function($query) {
+                $query->where('production_type',FoodProductionType::PRODUCTION->name);
+            })
+            ->with([
+                'item',
+                'ingredients.ingredient'
+
+            ])
+            ->get();        
+        } else {
+            $eventItemsbyProductionType = $this->menu_event_has_item
+            ->where('menu_event_id', $id)
+            ->whereHas('item', function($query) {
+                $query->where('production_type',FoodProductionType::PRE_PRODUCTION->name);
+            })
+            ->with([
+                'item',
+                'ingredients.ingredient'
+
+            ])
+            ->get(); 
+        }
+        
+        return response()->json(['event'=>$event,"data"=>$eventItemsbyProductionType, "type"=>$type]);
     }
 
     public function equipment_list(Request $request) {
