@@ -52,6 +52,16 @@ class EventController extends Controller
         // return view('event.index',['events'=>$events]);
     }
 
+    public function index_closed(){
+        $events = $this->event
+        ->where('type',EventType::CLOSED_EVENT->name)
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->get();
+        return response()->json($events);
+    }
+
     /**
      * Show the form for creating a new resource.
      */

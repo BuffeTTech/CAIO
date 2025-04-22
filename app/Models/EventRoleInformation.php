@@ -8,8 +8,8 @@ class EventRoleInformation extends Model
 {
     protected $guarded = [];
 
-    // public function MenuHasRoleQuantity()
-    // {
-    //     return $this->hasMany(MenuHasRoleQuantity::class, 'id', 'menu_has_role_quantities_id');
-    // }
+    public function menu_has_role_quantities()
+    {
+        return $this->hasOne(MenuHasRoleQuantity::class, 'id', 'menu_has_role_quantities_id');
+    }
 }

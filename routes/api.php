@@ -24,6 +24,7 @@ Route::post('/menu/{menu_slug}/item',  [MenuController::class, 'store_item_to_me
 
 # Event Routes
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
+Route::get('/event/closed_events', [EventController::class, 'index_closed'])->name('event.index_closed');
 Route::post('/event', [EventController::class, 'store'])->name('event.store');
 Route::get('/event/{event_id}',  [EventController::class, 'show'])->name('event.show');
 Route::get('/event/{event_id}/item/add',  [EventController::class, 'add_item_to_event'])->name('event.add_item_to_event');
@@ -41,6 +42,8 @@ Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remo
 Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
 Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');
 
+
+# Rotas do Orçamento
 Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_estimates.index');
 Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
 Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
