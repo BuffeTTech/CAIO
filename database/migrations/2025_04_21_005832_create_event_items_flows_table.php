@@ -14,7 +14,8 @@ return new class extends Migration
     {
         Schema::create('event_items_flows', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('menu_event_has_item_id')->constrained();
+            $table->foreignId('event_id')->constrained();
+            $table->foreignId('item_id')->constrained();
             $table->enum('status', array_column(ItemFlowType::cases(),'name'));
             $table->timestamps();
         });

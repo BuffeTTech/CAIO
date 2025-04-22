@@ -30,6 +30,7 @@ Route::get('/event/{event_id}/item/add',  [EventController::class, 'add_item_to_
 Route::post('/event/{event_id}/item',  [EventController::class, 'store_item_to_event'])->name('event.store_item_to_event');
 Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
 Route::get('/event/{event_id}/shopping_list',  [EventController::class, 'shopping_list'])->name('event.shopping_list');
+Route::delete('/event/{event_id}/close_event',  [EventController::class, 'close_event'])->name('event.close_event');
 
 Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');
 Route::patch('/event/{event_id}/checklist/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'check_matherial'])->name('event.checklist.check_matherial');

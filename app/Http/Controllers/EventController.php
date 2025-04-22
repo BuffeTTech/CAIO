@@ -112,7 +112,7 @@ class EventController extends Controller
             return response()->json(["data"=>"Invalid event id"], 404);
         }
 
-
+        dd($event);
         return response()->json($event);
     }
 
@@ -665,6 +665,23 @@ class EventController extends Controller
         }
         $menu_event_item_has_matherial->delete();
         return response()->json("", 201);
+    }
+
+    public function close_event(Request $request){
+        $event = $this->event
+        ->where('id', $request->event_id)
+        ->first();
+
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $event = $event->update([
+            "type" =>EventType::CLOSED_EVENT->name
+        ]);
+        return response()->json([
+            "message"=>"Evento Finalizado"
+        ]);
+        // return redirect()->route("all_estimates.index");
     }
     
 }
