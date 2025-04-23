@@ -25,6 +25,7 @@ class ClientFactory extends Factory
         return [
             'name' => $faker->name(),
             'email' => fake()->unique()->safeEmail(),
+            'document'=>$faker->cpf(),
             'whatsapp'=> $faker->cellphoneNumber(),
             'address_id' => Address::factory()->create()
         ];

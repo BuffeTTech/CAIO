@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\IngredientController;
@@ -66,3 +67,6 @@ Route::post('/estimate/save', [EstimateController::class, 'save_estimate'])->nam
 
 Route::get('/estimate/user/{user_id}',  [EstimateController::class, 'get_session_by_user'])->name('estimate.get_session_by_user');
 Route::get('/event/{event_id}/production_list',  [EventController::class, 'production_list'])->name('event.production_list');
+
+# Clientes
+Route::get('/client', [ClientController::class, 'index'])->name('client.index');

@@ -8,12 +8,19 @@ use App\Models\Client;
 
 class ClientController extends Controller
 {
+    public function __construct(
+        protected Client $client
+    ){}
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
+        $clients = $this->client
+        ->get();
+
+
+        return response()->json($clients);
     }
 
     /**
