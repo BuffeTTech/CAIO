@@ -70,3 +70,6 @@ Route::get('/event/{event_id}/production_list',  [EventController::class, 'produ
 
 # Clientes
 Route::get('/client', [ClientController::class, 'index'])->name('client.index');
+Route::get('/client/{client_id}', [ClientController::class, 'show'])->name('client.show');
+Route::get('/client/create', [ClientController::class, 'create'])->name('client.create');
+

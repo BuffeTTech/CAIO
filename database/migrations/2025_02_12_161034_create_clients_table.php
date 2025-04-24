@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\DocumentType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +18,7 @@ return new class extends Migration
             $table->string('email');
             $table->string('whatsapp');
             $table->string('document');
+            $table->enum('document_type', array_column(DocumentType::cases(),'name'));
             $table->foreignId('address_id')->onDelete('cascade'); 
             $table->timestamps();
         });

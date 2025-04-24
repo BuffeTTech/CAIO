@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Models\Address;
 use App\Models\Client;
+use Illuminate\Http\Request;
 
 class ClientController extends Controller
 {
     public function __construct(
-        protected Client $client
+        protected Client $client,
+        protected Address $address
+
     ){}
     /**
      * Display a listing of the resource.
@@ -18,7 +22,6 @@ class ClientController extends Controller
     {
         $clients = $this->client
         ->get();
-
 
         return response()->json($clients);
     }
@@ -42,9 +45,24 @@ class ClientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Client $client)
+    public function show(Request $request)
     {
-        //
+        $client = $this->client
+        ->where('id',$request->client_id)
+        ->get()
+        ->first();
+
+        $address = $this->address
+        ->where('id',$client->address_id)
+        ->get()
+        ->first();
+        if(!$client)
+            return response()->json(["Invalid client ID"]);
+
+        return response()->json([
+            'client' =>$client,
+            'address'=>$address
+        ]);
     }
 
     /**
