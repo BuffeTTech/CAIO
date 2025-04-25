@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DocumentType;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Models\Address;
@@ -37,9 +38,20 @@ class ClientController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreClientRequest $request)
+    public function store(Request $request)
     {
-        //
+        // dd($request);
+        // return response()->json($request->name);
+        // // dd($request->name);   
+        $client = Client::create([
+            'name' => $request->name,
+            'document' => $request->document,
+            'whatsapp' => $request->whatsapp,
+            'email' => $request->email,
+            'document_type' => DocumentType::CPF->name,
+            'address_id'=>null
+        ]);
+        return response()->json($client);
     }
 
     /**

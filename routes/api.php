@@ -69,6 +69,7 @@ Route::get('/estimate/user/{user_id}',  [EstimateController::class, 'get_session
 Route::get('/event/{event_id}/production_list',  [EventController::class, 'production_list'])->name('event.production_list');
 
 # Clientes
+Route::post('/client', [ClientController::class, 'store'])->name('client.store');
 Route::get('/client', [ClientController::class, 'index'])->name('client.index');
 Route::get('/client/{client_id}', [ClientController::class, 'show'])->name('client.show');
 Route::get('/client/create', [ClientController::class, 'create'])->name('client.create');
