@@ -53,6 +53,30 @@ class ClientController extends Controller
         ]);
         return response()->json($client);
     }
+    public function store_address(Request $request)
+    {
+        $address = Address::create([
+            'zipcode' => $request->zipcode,
+            'street' => $request->street,
+            'number' => $request->number,
+            'complement' => $request->email,
+            'city'=>$request->city,
+            'country'=>$request->country,
+            'state'=>$request->state,
+            'neighborhood'=>$request->neighborhood
+        ]);
+        $address_id = $address->id;
+        $client = $this->client
+        ->where('id',$request->client_id)
+        ->get()
+        ->first();
+
+        $client = $client->update([
+            "address_id"=>$address_id
+        ]);
+
+        return response()->json($address);
+    }
 
     /**
      * Display the specified resource.
