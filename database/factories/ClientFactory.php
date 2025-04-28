@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\DocumentType;
 use App\Models\Address;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Faker\Provider\pt_BR\Person;
@@ -25,6 +26,8 @@ class ClientFactory extends Factory
         return [
             'name' => $faker->name(),
             'email' => fake()->unique()->safeEmail(),
+            'document'=>$faker->cpf(),
+            'document_type'=> DocumentType::CPF->name,
             'whatsapp'=> $faker->cellphoneNumber(),
             'address_id' => Address::factory()->create()
         ];

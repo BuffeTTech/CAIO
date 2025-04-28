@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\EstimateController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\IngredientController;
@@ -24,12 +25,14 @@ Route::post('/menu/{menu_slug}/item',  [MenuController::class, 'store_item_to_me
 
 # Event Routes
 Route::get('/event', [EventController::class, 'index'])->name('event.index');
+Route::get('/event/closed_events', [EventController::class, 'index_closed'])->name('event.index_closed');
 Route::post('/event', [EventController::class, 'store'])->name('event.store');
 Route::get('/event/{event_id}',  [EventController::class, 'show'])->name('event.show');
 Route::get('/event/{event_id}/item/add',  [EventController::class, 'add_item_to_event'])->name('event.add_item_to_event');
 Route::post('/event/{event_id}/item',  [EventController::class, 'store_item_to_event'])->name('event.store_item_to_event');
 Route::get('/event/{event_id}/checklist',  [EventController::class, 'checklist'])->name('event.checklist');
 Route::get('/event/{event_id}/shopping_list',  [EventController::class, 'shopping_list'])->name('event.shopping_list');
+Route::delete('/event/{event_id}/close_event',  [EventController::class, 'close_event'])->name('event.close_event');
 
 Route::patch('/event/{event_id}/checklist/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'check_ingredient'])->name('event.checklist.check_ingredient');
 Route::patch('/event/{event_id}/checklist/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'check_matherial'])->name('event.checklist.check_matherial');
@@ -40,6 +43,8 @@ Route::delete('/event/{event_id}/item/{item_id}', [EventController::class, 'remo
 Route::delete('/event/{event_id}/item/{item_id}/ingredient/{ingredient_id}', [EventController::class, 'remove_ingredient_from_item_event'])->name('event.item.ingredient.remove_item');
 Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [EventController::class, 'remove_matherial_from_item_event'])->name('event.item.matherial.remove_item');
 
+
+# Rotas do Orçamento
 Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_estimates.index');
 Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
 Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
@@ -62,3 +67,12 @@ Route::post('/estimate/save', [EstimateController::class, 'save_estimate'])->nam
 
 Route::get('/estimate/user/{user_id}',  [EstimateController::class, 'get_session_by_user'])->name('estimate.get_session_by_user');
 Route::get('/event/{event_id}/production_list',  [EventController::class, 'production_list'])->name('event.production_list');
+
+# Clientes
+Route::post('/client', [ClientController::class, 'store'])->name('client.store');
+Route::post('/address', [ClientController::class, 'store_address'])->name('address.store');
+
+Route::get('/client', [ClientController::class, 'index'])->name('client.index');
+Route::get('/client/{client_id}', [ClientController::class, 'show'])->name('client.show');
+Route::get('/client/create', [ClientController::class, 'create'])->name('client.create');
+

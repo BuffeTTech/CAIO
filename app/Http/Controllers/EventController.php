@@ -52,6 +52,16 @@ class EventController extends Controller
         // return view('event.index',['events'=>$events]);
     }
 
+    public function index_closed(){
+        $events = $this->event
+        ->where('type',EventType::CLOSED_EVENT->name)
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->get();
+        return response()->json($events);
+    }
+
     /**
      * Show the form for creating a new resource.
      */
@@ -111,7 +121,6 @@ class EventController extends Controller
         if(!$event) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
-
 
         return response()->json($event);
     }
@@ -665,6 +674,23 @@ class EventController extends Controller
         }
         $menu_event_item_has_matherial->delete();
         return response()->json("", 201);
+    }
+
+    public function close_event(Request $request){
+        $event = $this->event
+        ->where('id', $request->event_id)
+        ->first();
+
+        if(!$event) {
+            return response()->json(["data"=>"Invalid event id"], 404);
+        }
+        $event = $event->update([
+            "type" =>EventType::CLOSED_EVENT->name
+        ]);
+        return response()->json([
+            "message"=>"Evento Finalizado"
+        ]);
+        // return redirect()->route("all_estimates.index");
     }
     
 }

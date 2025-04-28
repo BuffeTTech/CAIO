@@ -54,7 +54,7 @@ class EstimateController extends Controller
         protected ItemHasMatherial $item_has_matherial,
         protected ItemHasIngredient $item_has_ingredient,
         protected EventPricing $event_pricing,
-        protected EventItemsFlow $eventItemsFlow,
+        protected EventItemsFlow $event_items_flow,
 
         protected Client $client,
         protected Address $address,
@@ -85,17 +85,9 @@ class EstimateController extends Controller
         if(!$event) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
-
-        $menu_event = $this->menu_event->where('event_id', $estimate_id)->get()->first();
-        $items = $this->menu_event_has_item
-            ->where('menu_event_id', $menu_event->id)
-            ->whereHas('eventItemsFlow')
-            ->get();
-        
         
         return response()->json([
             'event'=>$event,
-            'changedItems'=>$items
         ]);
     }
 
@@ -115,12 +107,20 @@ class EstimateController extends Controller
         ->first();
 
         $menu_event = $this->menu_event->where('event_id', $id)->get()->first();
-        $items = $this->menu_event_has_item
-            ->where('menu_event_id', $menu_event->id)
-            ->whereHas('eventItemsFlow')
-            ->with('eventItemsFlow')
-            ->with('item')
-            ->get();
+        // $items = $this->items
+        // ->whereHas('eventItemsFlow', function ($query) use ($menu_event) {
+        //     $query->where('event_id', $menu_event->event_id);
+        // })
+        // ->with(['eventItemsFlow' => function ($query) use ($menu_event) {
+        //     $query->where('event_id', $menu_event->event_id);
+        // }])
+        // ->get();
+
+        $items = $this->event_items_flow
+                        ->where('event_id', $id)
+                        ->with('item')
+                        ->get();
+
         if(!$estimate) {
             return response()->json(["data"=>"Invalid event id"], 404);
         }
@@ -898,15 +898,24 @@ class EstimateController extends Controller
 
         // Indica os itens que foram removidos e adicionados no menu
         foreach($removeIds as $removeId) {
-            $removeIds = EventItemsFlow::create([
-                'menu_event_has_item_id'=> $removeId,
+            EventItemsFlow::create([
+                'item_id' =>$removeId,
+                'event_id' =>$event->id,
                 "status"=> ItemFlowType::REMOVED->name,
             ]);
         }
         foreach($addIds as $item){
-            $newItems = EventItemsFlow::create([
-                'menu_event_has_item_id' =>$item,
+            EventItemsFlow::create([
+                'item_id' =>$item,
+                'event_id' =>$event->id,
                 "status"=> ItemFlowType::INSERTED->name,
+            ]);
+        }
+        foreach($modifies as $item){
+            EventItemsFlow::create([
+                'item_id' =>$item,
+                'event_id' =>$event->id,
+                "status"=> ItemFlowType::MODIFIED->name,
             ]);
         }
 
@@ -1161,41 +1170,43 @@ class EstimateController extends Controller
                 'message' => 'Invalid estimate id'
             ], 404);
         }
-        // $event_role_information = $this->event_role_information
-        // ->where('event_id', $estimate->id)
-        // ->with('menu_has_role_quantities')
-        // ->get();
-        // $event_information = $this->event_information
-        // ->where('event_id', $estimate->id)
-        // ->with('menu_information')
-        // ->get();
-        // $event_information = collect($event_information->map(function($information) {
-        //     return [
-        //         'id' => $information->menu_information->id, // id do relacionamento
-        //         'name' => $information->menu_information->name,
-        //         'unit_price' => $information->menu_information->price,
-        //         'quantity' => $information->quantity,
-        //         'created_at' => $information->menu_information->created_at,
-        //         'updated_at' => $information->menu_information->updated_at,
-        //         'type' => $information->menu_information->type
-        //     ];
-        // }));
-        // $event_role_information = collect($event_role_information->map(function($information) {
-        //     return [
-        //         'id' => $information->menu_has_role_quantities->id, // id do relacionamento
-        //         'name' => $information->menu_has_role_quantities->role->name,
-        //         'unit_price' => $information->menu_has_role_quantities->role->price,
-        //         'quantity' => $information->quantity,
-        //         'created_at' => $information->menu_has_role_quantities->created_at,
-        //         'updated_at' => $information->menu_has_role_quantities->updated_at,
-        //         'type' => MenuInformationType::EMPLOYEES->name
-        //     ];
-        // }));
+        $event_role_information = $this->event_role_information
+        ->where('event_id', $estimate->id)
+        ->with('menu_has_role_quantities.quantity.role')
+        ->get();
+        $event_information = $this->event_information
+        ->where('event_id', $estimate->id)
+        ->with('menu_information')
+        ->get();
+        $event_information = collect($event_information->map(function($information) {
+            return [
+                'id' => $information->menu_information->id, // id do relacionamento
+                'name' => $information->menu_information->name,
+                'unit_price' => $information->unit_price,
+                'quantity' => $information->quantity,
+                'created_at' => $information->menu_information->created_at,
+                'updated_at' => $information->menu_information->updated_at,
+                'type' => $information->menu_information->type
+            ];
+        }));
+        $event_role_information = collect($event_role_information->map(function($information) {
+            return [
+                'id' => $information->menu_has_role_quantities->id, // id do relacionamento
+                'name' => $information->menu_has_role_quantities->quantity->role->name,
+                'unit_price' => $information->unit_price,
+                'quantity' => $information->quantity,
+                'created_at' => $information->menu_has_role_quantities->created_at,
+                'updated_at' => $information->menu_has_role_quantities->updated_at,
+                'type' => MenuInformationType::EMPLOYEES->name
+            ];
+        }));
+
+        $event_costs = $event_role_information->merge($event_information);
 
         return response()->json([
             'message' => 'Estimate found successfully',
             'data'=>[
-                'costs'=>[],
+                'costs'=>$event_costs,
                 'prices'=>[
                     'profit'=>$estimate->event_pricing->profit,
                     'agency'=>$estimate->event_pricing->agency,
