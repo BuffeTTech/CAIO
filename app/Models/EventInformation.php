@@ -10,7 +10,7 @@ class EventInformation extends Model
 
     public function menu_information()
     {
-        return $this->hasOne(MenuInformation::class, 'id');
+        return $this->belongsTo(MenuInformation::class, 'menu_information_id');
     }
     public function event()
     {

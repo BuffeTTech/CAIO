@@ -10,6 +10,6 @@ class EventRoleInformation extends Model
 
     public function menu_has_role_quantities()
     {
-        return $this->hasOne(MenuHasRoleQuantity::class, 'id', 'menu_has_role_quantities_id');
+        return $this->belongsTo(MenuHasRoleQuantity::class, 'menu_has_role_quantities_id');
     }
 }

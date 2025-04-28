@@ -106,16 +106,6 @@ class EstimateController extends Controller
         ->get()
         ->first();
 
-        $menu_event = $this->menu_event->where('event_id', $id)->get()->first();
-        // $items = $this->items
-        // ->whereHas('eventItemsFlow', function ($query) use ($menu_event) {
-        //     $query->where('event_id', $menu_event->event_id);
-        // })
-        // ->with(['eventItemsFlow' => function ($query) use ($menu_event) {
-        //     $query->where('event_id', $menu_event->event_id);
-        // }])
-        // ->get();
-
         $items = $this->event_items_flow
                         ->where('event_id', $id)
                         ->with('item')
@@ -1178,6 +1168,7 @@ class EstimateController extends Controller
         ->where('event_id', $estimate->id)
         ->with('menu_information')
         ->get();
+
         $event_information = collect($event_information->map(function($information) {
             return [
                 'id' => $information->menu_information->id, // id do relacionamento
