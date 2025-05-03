@@ -73,6 +73,18 @@ class EstimateController extends Controller
         return response()->json($allEstimates);
     }
 
+    public function create_multiple_estimates(){
+        $menus = $this->menu->get()->all();
+
+        return response()->json($menus);
+    }
+    public function multiple_estimates_menus(Request $request){
+        $slugs = $request->menuSlugs; // ['menu-a', 'menu-b']
+
+        // Busca os orçamentos no banco com base nos slugs
+        $estimates = Menu::whereIn('slug', $slugs)->with('items')->get();
+        return response()->json($estimates);
+    }
     public function show(Request $request){
         $estimate_id = $request->estimate_id;
 
