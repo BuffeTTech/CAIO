@@ -68,6 +68,8 @@ class EstimateController extends Controller
             ->with('address')
             ->with('event_pricing')
             ->get();
+
+        $allEstimates= $this->group_estimates_by_person($allEstimates);
         return response()->json($allEstimates);
     }
 
@@ -1210,6 +1212,49 @@ class EstimateController extends Controller
                 ]
             ],
         ]);
+    }
+    public function group_estimates_by_person($estimates){
+
+        // $groupedEstimates = [];
+        
+        // foreach($estimates as $estimate){
+        // $key = $estimate->client->name . "_" . $estimate->guests_amount . "_" . $estimate->date;
+        //     if(!isset($key)){
+        //         $groupedEstimates[$key] = [
+        //             "name" => $estimate->client->name,
+        //             // "menu"=>$estimate->menu->name,
+        //             "guests_amount" => $estimate->guests_amount,
+        //             // "cost"=> $estimate->cost,
+        //             "date" => $estimate->date,
+        //             'items' => []
+        //         ];
+        //     }
+        //     $groupedEstimates[$key]['items'][] = $estimate;
+
+        // }
+
+        $groupMap = []; // Serve para mapear grupos únicos
+        $groupedEstimates = [];
+
+        foreach ($estimates as $estimate) {
+            $groupKey = $estimate->client->name . "_" . $estimate->guests_amount . "_" . $estimate->date;
+
+            if (!isset($groupMap[$groupKey])) {
+                $groupMap[$groupKey] = count($groupedEstimates); // Salva o índice numérico
+                $groupedEstimates[] = [
+                    "name" => $estimate->client->name,
+                    "guests_amount" => $estimate->guests_amount,
+                    "date" => $estimate->date,
+                    "items" => []
+                ];
+            }
+
+            $index = $groupMap[$groupKey];
+            $groupedEstimates[$index]['items'][] = $estimate;
+        }
+
+
+        return $groupedEstimates;
     }
     
 }
