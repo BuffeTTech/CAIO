@@ -26,6 +26,7 @@ use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
@@ -77,6 +78,47 @@ class EstimateController extends Controller
         $menus = $this->menu->get()->all();
 
         return response()->json($menus);
+    }
+
+    public function store_multiple_estimates(Request $request){
+        $menus = $request->menus;
+        $profits = $request->menuProfits;
+        $client = $this->client->where("id",$request->client_id)->with("address")->get()->first();
+        foreach($menus as $menu){
+            $menuProfit = 0;
+            $estimate = Event::create([
+                "menu_id" => $menu["id"],
+                "client_id" => $client["id"],
+                "address_id" => $client["address_id"],
+                "type" => EventType::OPEN_ESTIMATE->name,
+                "guests_amount"=>$request->guestsAmount,
+                "date"=> Date::create(2025,03,02),
+                "time"=> Date::createFromTime(6,30,22)
+            ]);
+            
+            if(!$estimate) {
+                return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
+            }
+            
+            foreach($profits as $key=>$profit){
+                if($menu["slug"] == $key)
+                    $menuProfit = $profit;
+            }
+
+            $estimate_pricing = EventPricing::create([
+                "event_id" => $estimate->id,
+                "profit" => $menuProfit,
+                "agency" => 0,
+                "data_cost" => 0,
+                "fixed_cost"=> 0,
+                "total"=> 0
+            ]);
+
+            if(!$estimate_pricing) {
+                return response()->json(["data"=>"Erro no salvamento das precificaçoes do orçamento"], 404);
+            }
+        }
+        return response()->json(["data"=>"Sucesso no Cadastro!"]);
     }
     public function multiple_estimates_menus(Request $request){
         $slugs = $request->menuSlugs; // ['menu-a', 'menu-b']

@@ -49,7 +49,9 @@ Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_es
 Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
 Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
 
-Route::get('/multiple_estimates', [EstimateController::class, 'create_multiple_estimates'])->name('multiple_estimates.index');
+Route::get('/multiple_estimates', [EstimateController::class, 'create_multiple_estimates'])->name('multiple_estimates.create');
+Route::post('/multiple_estimates', [EstimateController::class, 'store_multiple_estimates'])->name('multiple_estimates.store');
+Route::post('/multiple_estimates_menus', [EstimateController::class, 'multiple_estimates_menus'])->name('multiple_estimates_menus.index');
 Route::post('/multiple_estimates_menus', [EstimateController::class, 'multiple_estimates_menus'])->name('multiple_estimates_menus.index');
 
 Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateController::class, 'close_estimate'])->name('all_estimates.close_estimate');
