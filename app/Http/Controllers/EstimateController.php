@@ -82,7 +82,7 @@ class EstimateController extends Controller
         $slugs = $request->menuSlugs; // ['menu-a', 'menu-b']
 
         // Busca os orçamentos no banco com base nos slugs
-        $estimates = Menu::whereIn('slug', $slugs)->with('items')->get();
+        $estimates = Menu::whereIn('slug', $slugs)->with('items.item')->get();
         return response()->json($estimates);
     }
     public function show(Request $request){
