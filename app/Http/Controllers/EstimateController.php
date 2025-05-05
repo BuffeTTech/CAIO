@@ -84,6 +84,10 @@ class EstimateController extends Controller
         $menus = $request->menus;
         $profits = $request->menuProfits;
         $client = $this->client->where("id",$request->client_id)->with("address")->get()->first();
+        $date = $request->estimateDate;
+        $date = substr($date,0,-14);
+        // return response()->json($date);
+
         foreach($menus as $menu){
             $menuProfit = 0;
             $estimate = Event::create([
@@ -92,8 +96,8 @@ class EstimateController extends Controller
                 "address_id" => $client["address_id"],
                 "type" => EventType::OPEN_ESTIMATE->name,
                 "guests_amount"=>$request->guestsAmount,
-                "date"=> Date::create(2025,03,02),
-                "time"=> Date::createFromTime(6,30,22)
+                "date"=> $date,
+                "time"=> $request->estimateTime
             ]);
             
             if(!$estimate) {
