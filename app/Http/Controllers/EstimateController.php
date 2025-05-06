@@ -81,16 +81,26 @@ class EstimateController extends Controller
     }
 
     public function store_multiple_estimates(Request $request){
-        $menus = $request->menus;
+        $menusSlugs = $request->menus;
         $profits = $request->menuProfits;
-        $client = $this->client->where("id",$request->client_id)->with("address")->get()->first();
+        $client = $this->client->where("id",$request->client_id)->with("address")
+        ->get()
+        ->first();
+
         $date = $request->estimateDate;
         $date = substr($date,0,-14);
         
-        foreach($menus as $menu){
+        foreach($menusSlugs as $menuSlug){
             $menuProfit = 0;
+            $menu = $this->menu->where("slug",$menuSlug)
+            ->get()
+            ->first();
+
+            if(!$menu)
+                return response()->json(['data'=>'Invalid Slug']);
+
             $estimate = Event::create([
-                "menu_id" => $menu["id"],
+                "menu_id" => $menu->id,
                 "client_id" => $client["id"],
                 "address_id" => $client["address_id"],
                 "type" => EventType::OPEN_ESTIMATE->name,
@@ -100,19 +110,19 @@ class EstimateController extends Controller
             ]);
             
             $menu_event = MenuEvent::create([
-                "menu_id" =>$menu['id'],
+                "menu_id" =>$menu->id,
                 'event_id' =>$estimate->id
             ]);
-            
-            return response()->json($menu);
-            foreach($menu['items'] as $item1){
+
+            foreach($menu->items as $item1){
+                
                 $item = $item1['item'];
                 $item = $this->items->where('id',$item['id'])
                 ->with("ingredients.ingredient")
-                ->with("matherials")
+                ->with("matherials.matherial")
                 ->get()
                 ->first();
-
+                
                 $menu_event_has_items = MenuEventHasItem::create([
                     "menu_event_id"=> $menu_event->id,
                     "item_id" => $item->id,
@@ -121,11 +131,21 @@ class EstimateController extends Controller
                     "unit"=>$item->unit
                 ]);
 
-                $menu_event_has_ingredients = MenuEventItemHasIngredient::create([
-                    "menu_event_has_items_id"=> $menu_event_has_items->id,
-                    "ingredient_id" => $item->ingredients
-                ]);
+                foreach($item->ingredients as $ingredient){
+                    $menu_event_has_ingredients = MenuEventItemHasIngredient::create([
+                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "ingredient_id" => $ingredient->ingredient_id,
+                        "proportion_per_item" =>$ingredient->proportion_per_item,
+                        "unit"=>$ingredient->unit
+                    ]);
+                }
 
+                foreach($item->matherials as $matherial){
+                    $menu_event_has_matherials = MenuEventItemHasMatherial::create([
+                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "matherial_id" => $matherial->matherial_id,
+                    ]);
+                }
             }
 
             if(!$estimate) {
@@ -133,7 +153,7 @@ class EstimateController extends Controller
             }
             
             foreach($profits as $key=>$profit){
-                if($menu["slug"] == $key)
+                if($menu->slug == $key)
                     $menuProfit = $profit;
             }
 
