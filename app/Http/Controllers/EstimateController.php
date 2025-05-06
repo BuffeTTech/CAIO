@@ -108,6 +108,10 @@ class EstimateController extends Controller
                 "date"=> $date,
                 "time"=> $request->estimateTime
             ]);
+
+            if(!$estimate) {
+                return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
+            }
             
             $menu_event = MenuEvent::create([
                 "menu_id" =>$menu->id,
@@ -122,7 +126,7 @@ class EstimateController extends Controller
                 ->with("matherials.matherial")
                 ->get()
                 ->first();
-                
+
                 $menu_event_has_items = MenuEventHasItem::create([
                     "menu_event_id"=> $menu_event->id,
                     "item_id" => $item->id,
@@ -146,10 +150,6 @@ class EstimateController extends Controller
                         "matherial_id" => $matherial->matherial_id,
                     ]);
                 }
-            }
-
-            if(!$estimate) {
-                return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
             }
             
             foreach($profits as $key=>$profit){
@@ -1320,33 +1320,14 @@ class EstimateController extends Controller
         ]);
     }
     public function group_estimates_by_person($estimates){
-
-        // $groupedEstimates = [];
-        
-        // foreach($estimates as $estimate){
-        // $key = $estimate->client->name . "_" . $estimate->guests_amount . "_" . $estimate->date;
-        //     if(!isset($key)){
-        //         $groupedEstimates[$key] = [
-        //             "name" => $estimate->client->name,
-        //             // "menu"=>$estimate->menu->name,
-        //             "guests_amount" => $estimate->guests_amount,
-        //             // "cost"=> $estimate->cost,
-        //             "date" => $estimate->date,
-        //             'items' => []
-        //         ];
-        //     }
-        //     $groupedEstimates[$key]['items'][] = $estimate;
-
-        // }
-
-        $groupMap = []; // Serve para mapear grupos únicos
+        $groupMap = [];
         $groupedEstimates = [];
 
         foreach ($estimates as $estimate) {
             $groupKey = $estimate->client->name . "_" . $estimate->guests_amount . "_" . $estimate->date;
 
             if (!isset($groupMap[$groupKey])) {
-                $groupMap[$groupKey] = count($groupedEstimates); // Salva o índice numérico
+                $groupMap[$groupKey] = count($groupedEstimates);
                 $groupedEstimates[] = [
                     "name" => $estimate->client->name,
                     "guests_amount" => $estimate->guests_amount,
@@ -1354,7 +1335,6 @@ class EstimateController extends Controller
                     "items" => []
                 ];
             }
-
             $index = $groupMap[$groupKey];
             $groupedEstimates[$index]['items'][] = $estimate;
         }
