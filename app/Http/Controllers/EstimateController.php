@@ -86,8 +86,7 @@ class EstimateController extends Controller
         $client = $this->client->where("id",$request->client_id)->with("address")->get()->first();
         $date = $request->estimateDate;
         $date = substr($date,0,-14);
-        // return response()->json($date);
-
+        
         foreach($menus as $menu){
             $menuProfit = 0;
             $estimate = Event::create([
@@ -100,6 +99,35 @@ class EstimateController extends Controller
                 "time"=> $request->estimateTime
             ]);
             
+            $menu_event = MenuEvent::create([
+                "menu_id" =>$menu['id'],
+                'event_id' =>$estimate->id
+            ]);
+            
+            return response()->json($menu);
+            foreach($menu['items'] as $item1){
+                $item = $item1['item'];
+                $item = $this->items->where('id',$item['id'])
+                ->with("ingredients.ingredient")
+                ->with("matherials")
+                ->get()
+                ->first();
+
+                $menu_event_has_items = MenuEventHasItem::create([
+                    "menu_event_id"=> $menu_event->id,
+                    "item_id" => $item->id,
+                    "cost"=>$item->cost,
+                    "consumed_per_client"=>$item->consumed_per_client,
+                    "unit"=>$item->unit
+                ]);
+
+                $menu_event_has_ingredients = MenuEventItemHasIngredient::create([
+                    "menu_event_has_items_id"=> $menu_event_has_items->id,
+                    "ingredient_id" => $item->ingredients
+                ]);
+
+            }
+
             if(!$estimate) {
                 return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
             }
