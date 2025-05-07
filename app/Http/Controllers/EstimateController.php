@@ -26,6 +26,7 @@ use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
@@ -68,9 +69,116 @@ class EstimateController extends Controller
             ->with('address')
             ->with('event_pricing')
             ->get();
+
+        $allEstimates= $this->group_estimates_by_person($allEstimates);
         return response()->json($allEstimates);
     }
 
+    public function create_multiple_estimates(){
+        $menus = $this->menu->get()->all();
+
+        return response()->json($menus);
+    }
+
+    public function store_multiple_estimates(Request $request){
+        $menusSlugs = $request->menus;
+        $profits = $request->menuProfits;
+        $client = $this->client->where("id",$request->client_id)->with("address")
+        ->get()
+        ->first();
+
+        $date = $request->estimateDate;
+        $date = substr($date,0,-14);
+        
+        foreach($menusSlugs as $menuSlug){
+            $menuProfit = 0;
+            $menu = $this->menu->where("slug",$menuSlug)
+            ->get()
+            ->first();
+
+            if(!$menu)
+                return response()->json(['data'=>'Invalid Slug']);
+
+            $estimate = Event::create([
+                "menu_id" => $menu->id,
+                "client_id" => $client["id"],
+                "address_id" => $client["address_id"],
+                "type" => EventType::OPEN_ESTIMATE->name,
+                "guests_amount"=>$request->guestsAmount,
+                "date"=> $date,
+                "time"=> $request->estimateTime
+            ]);
+
+            if(!$estimate) {
+                return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
+            }
+            
+            $menu_event = MenuEvent::create([
+                "menu_id" =>$menu->id,
+                'event_id' =>$estimate->id
+            ]);
+
+            foreach($menu->items as $item1){
+                
+                $item = $item1['item'];
+                $item = $this->items->where('id',$item['id'])
+                ->with("ingredients.ingredient")
+                ->with("matherials.matherial")
+                ->get()
+                ->first();
+
+                $menu_event_has_items = MenuEventHasItem::create([
+                    "menu_event_id"=> $menu_event->id,
+                    "item_id" => $item->id,
+                    "cost"=>$item->cost,
+                    "consumed_per_client"=>$item->consumed_per_client,
+                    "unit"=>$item->unit
+                ]);
+
+                foreach($item->ingredients as $ingredient){
+                    $menu_event_has_ingredients = MenuEventItemHasIngredient::create([
+                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "ingredient_id" => $ingredient->ingredient_id,
+                        "proportion_per_item" =>$ingredient->proportion_per_item,
+                        "unit"=>$ingredient->unit
+                    ]);
+                }
+
+                foreach($item->matherials as $matherial){
+                    $menu_event_has_matherials = MenuEventItemHasMatherial::create([
+                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "matherial_id" => $matherial->matherial_id,
+                    ]);
+                }
+            }
+            
+            foreach($profits as $key=>$profit){
+                if($menu->slug == $key)
+                    $menuProfit = $profit;
+            }
+
+            $estimate_pricing = EventPricing::create([
+                "event_id" => $estimate->id,
+                "profit" => $menuProfit,
+                "agency" => 0,
+                "data_cost" => 0,
+                "fixed_cost"=> 0,
+                "total"=> 0
+            ]);
+
+            if(!$estimate_pricing) {
+                return response()->json(["data"=>"Erro no salvamento das precificaçoes do orçamento"], 404);
+            }
+        }
+        return response()->json(["data"=>"Sucesso no Cadastro!"]);
+    }
+    public function multiple_estimates_menus(Request $request){
+        $slugs = $request->menuSlugs; // ['menu-a', 'menu-b']
+
+        // Busca os orçamentos no banco com base nos slugs
+        $estimates = Menu::whereIn('slug', $slugs)->with('items.item')->get();
+        return response()->json($estimates);
+    }
     public function show(Request $request){
         $estimate_id = $request->estimate_id;
 
@@ -1210,6 +1318,29 @@ class EstimateController extends Controller
                 ]
             ],
         ]);
+    }
+    public function group_estimates_by_person($estimates){
+        $groupMap = [];
+        $groupedEstimates = [];
+
+        foreach ($estimates as $estimate) {
+            $groupKey = $estimate->client->name . "_" . $estimate->guests_amount . "_" . $estimate->date;
+
+            if (!isset($groupMap[$groupKey])) {
+                $groupMap[$groupKey] = count($groupedEstimates);
+                $groupedEstimates[] = [
+                    "name" => $estimate->client->name,
+                    "guests_amount" => $estimate->guests_amount,
+                    "date" => $estimate->date,
+                    "items" => []
+                ];
+            }
+            $index = $groupMap[$groupKey];
+            $groupedEstimates[$index]['items'][] = $estimate;
+        }
+
+
+        return $groupedEstimates;
     }
     
 }
