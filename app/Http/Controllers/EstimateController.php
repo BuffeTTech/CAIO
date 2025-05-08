@@ -73,7 +73,41 @@ class EstimateController extends Controller
         $allEstimates= $this->group_estimates_by_person($allEstimates);
         return response()->json($allEstimates);
     }
+    public function edit(Request $request){
+        $estimate = $this->event->
+        where('id',$request->estimate_id)
+        ->with('menu')
+        ->with('client')
+        ->with('address')
+        ->with('menu_event.items.ingredients.ingredient')
+        ->with('menu_event.items.matherials.matherial')
+        ->with('menu_event.items.item')
+        // ->with('menu_event')
+        ->where('id', $request->estimate_id)
+        ->get()
+        ->first();
 
+        return response()->json($estimate);
+    }
+
+    public function store_item_to_menu_event(Request $request){
+        $item = $this->items->where('id',$request->item_id)
+        // ->with('ingredients.ingredient')
+        // ->with('ingredients.ingredient')
+        ->get()
+        ->first();
+        $menu_event = $this->menu_event->where("event_id",$request->estimate_id)
+        ->get()
+        ->first();
+        $menu_event_has_new_item = MenuEventHasItem::create([
+            "menu_event_id"=>$menu_event->id,
+            "item_id"=>$item->id,
+            "cost"=>$item->cost,
+            "consumed_per_client"=>$item->consumed_per_client,
+            "unit"=>$item->unit
+        ]);
+        return response()->json($item);
+    }
     public function create_multiple_estimates(){
         $menus = $this->menu->get()->all();
 
@@ -228,7 +262,16 @@ class EstimateController extends Controller
             'changedItems'=>$items
         ]);
     }
-
+    public function search_items(Request $request){
+        $estimateId = $request->estimate_id;
+        $filteredItems = Item::whereNotIn('id', function ($query) use ($estimateId) {
+            $query->select('item_id')
+                  ->from('menu_event_has_items')
+                  ->where('menu_event_id', $estimateId);
+        })->get();
+    
+        return response()->json($filteredItems);
+    }
     public function create_session(Request $request) {
         $id = $request->user_id;
         if(!$id) {
