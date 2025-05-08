@@ -108,6 +108,18 @@ class EstimateController extends Controller
         ]);
         return response()->json($item);
     }
+
+    public function delete_item_from_menu_event(Request $request){
+        $menu_event = $this->menu_event->where('event_id',$request->estimate_id)
+        ->get()
+        ->first();
+        
+        MenuEventHasItem::where('menu_event_id', $menu_event->id)
+        ->where('item_id', $request->item_id)
+        ->delete();
+        
+        return response()->json(['message'=>'Item removido']);
+    }
     public function create_multiple_estimates(){
         $menus = $this->menu->get()->all();
 

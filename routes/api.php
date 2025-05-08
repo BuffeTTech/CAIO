@@ -51,6 +51,7 @@ Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'i
 Route::get('/all_estimates/{estimate_id}/edit', [EstimateController::class, 'edit'])->name('all_estimates.edit');
 Route::get('/all_estimates/{estimate_id}/edit/search_items', [EstimateController::class, 'search_items'])->name('all_estimates.search_items');
 Route::post('/all_estimates/store_item_to_menu_event', [EstimateController::class, 'store_item_to_menu_event'])->name('all_estimates.store_item_to_menu_event');
+Route::delete('/all_estimates/delete_item_from_menu_event', [EstimateController::class, 'delete_item_from_menu_event'])->name('all_estimates.delete_item_from_menu_event');
 
 Route::get('/multiple_estimates', [EstimateController::class, 'create_multiple_estimates'])->name('multiple_estimates.create');
 Route::post('/multiple_estimates', [EstimateController::class, 'store_multiple_estimates'])->name('multiple_estimates.store');
