@@ -179,6 +179,37 @@ class EstimateController extends Controller
         $estimates = Menu::whereIn('slug', $slugs)->with('items.item')->get();
         return response()->json($estimates);
     }
+    public function add_client_session(Request $request) {
+        $id = $request->user_id;
+        if(!$id) {
+            return response()->json([
+                'message' => 'Please provide an id'
+            ], 400);
+        }
+
+        $client = $request->client;
+        if(!$client) {
+            return response()->json([
+                'message' => 'Please provide a client'
+            ], 400);
+        }
+
+        $client = $this->client->where('id', $client)->first();
+        if(!$client) {
+            return response()->json([
+                'message' => 'Invalid client id'
+            ], 404);
+        }
+
+        $key = 'session:'.$id;
+
+        Redis::hset($key, "client", json_encode($client));
+        Redis::expire($key, $this->expiresAt);
+
+        return response()->json([
+            'message' => 'Client added successfully',
+        ]);
+    }
     public function show(Request $request){
         $estimate_id = $request->estimate_id;
 
@@ -265,6 +296,7 @@ class EstimateController extends Controller
             Redis::hset($key, "menu", $menu->slug);
             Redis::hset($key, "guests", $this->minGuests);
             Redis::hset($key, "items", json_encode([]));
+            Redis::hset($key, "client", null);
             Redis::hset($key, "costs", json_encode($costs));
             // Redis::hset($key, "items", json_encode([]));
             Redis::expire($key, $this->expiresAt);
@@ -287,6 +319,7 @@ class EstimateController extends Controller
                 'menu'=>$menu,
                 'initial_guests'=>$data['guests'],
                 'min_guests'=>$this->minGuests,
+                'client'=>json_decode($data['client'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -863,6 +896,7 @@ class EstimateController extends Controller
                 'menu'=>$menu,
                 'initial_guests'=>$data['guests'],
                 'min_guests'=>$this->minGuests,
+                'client'=>json_decode($data['client'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -885,9 +919,9 @@ class EstimateController extends Controller
             'address.city' => ['required', 'string', 'max:255'],
             'address.complement' => ['nullable', 'string', 'max:255'], // Campo opcional
         
-            'details.name' => ['required', 'string', 'max:255'],
-            'details.email' => ['required', 'email', 'max:255'], // Valida o formato de email
-            'details.phone' => ['required', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'], // Valida o formato do telefone (xx) xxxxx-xxxx
+            // 'details.name' => ['required', 'string', 'max:255'],
+            // 'details.email' => ['required', 'email', 'max:255'], // Valida o formato de email
+            // 'details.phone' => ['required', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'], // Valida o formato do telefone (xx) xxxxx-xxxx
         
             'event.date' => ['required', 'date'], // Valida se é uma data válida
             'event.time' => ['required', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'], // Valida o formato HH:mm
@@ -916,7 +950,7 @@ class EstimateController extends Controller
         }
 
         $address = $request->address;
-        $details = $request->details;
+        // $details = $request->details;
         $event = $request->event;
         
         $key = 'session:'.$id;
@@ -927,6 +961,19 @@ class EstimateController extends Controller
             return response()->json([
                 'message' => 'Session not found'
             ], 400);
+        }
+
+        $client = json_decode($data['client'], true);
+        if(!$client) {
+            return response()->json([
+                'message' => 'Please provide a client using the route PATCH /api/estimate/client'
+            ], 400);
+        }
+        $client = $this->client->where('id', $client['id'])->first();
+        if(!$client) {
+            return response()->json([
+                'message' => 'Invalid client id'
+            ], 404);
         }
 
         $menu = $this->menu->where('slug', $data['menu'])->first();
@@ -940,13 +987,6 @@ class EstimateController extends Controller
             'city'=>$address['city'],
             'complement'=>$address['complement'],
             "country"=>"Brasil",
-        ]);
-
-        $client = $this->client->create([
-            'name'=>$details['name'],
-            'email'=>$details['email'],
-            'whatsapp'=>$details['phone'],
-            'address_id'=>$address->id,
         ]);
 
         $eventDate = date('Y-m-d', strtotime($event['date']));
