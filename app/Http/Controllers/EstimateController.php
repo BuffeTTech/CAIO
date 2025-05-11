@@ -82,6 +82,7 @@ class EstimateController extends Controller
         ->with('menu_event.items.ingredients.ingredient')
         ->with('menu_event.items.matherials.matherial')
         ->with('menu_event.items.item')
+        ->with('event_pricing')
         // ->with('menu_event')
         ->where('id', $request->estimate_id)
         ->get()
@@ -117,7 +118,7 @@ class EstimateController extends Controller
         MenuEventHasItem::where('menu_event_id', $menu_event->id)
         ->where('item_id', $request->item_id)
         ->delete();
-        
+
         return response()->json(['message'=>'Item removido']);
     }
     public function create_multiple_estimates(){
