@@ -9,9 +9,10 @@ use App\Http\Controllers\MenuController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
+});
+
 
 # Menu Routes
 Route::get('/menu',  [MenuController::class, 'index']);
@@ -81,4 +82,3 @@ Route::post('/address', [ClientController::class, 'store_address'])->name('addre
 Route::get('/client', [ClientController::class, 'index'])->name('client.index');
 Route::get('/client/{client_id}', [ClientController::class, 'show'])->name('client.show');
 Route::get('/client/create', [ClientController::class, 'create'])->name('client.create');
-
