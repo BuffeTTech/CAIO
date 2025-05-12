@@ -59,196 +59,272 @@ class EstimateController extends Controller
 
         protected Client $client,
         protected Address $address,
-    )
-    {}
-    public function index(){
+    ) {}
+    public function index()
+    {
         $allEstimates = $this->event
-            ->where('type',EventType::OPEN_ESTIMATE->name)
+            ->where('type', EventType::OPEN_ESTIMATE->name)
             ->with('menu')
             ->with('client')
             ->with('address')
             ->with('event_pricing')
             ->get();
 
-        $allEstimates= $this->group_estimates_by_person($allEstimates);
+        $allEstimates = $this->group_estimates_by_person($allEstimates);
         return response()->json($allEstimates);
     }
-    public function edit(Request $request){
-        $estimate = $this->event->
-        where('id',$request->estimate_id)
-        ->with('menu')
-        ->with('client')
-        ->with('address')
-        ->with('menu_event.items.ingredients.ingredient')
-        ->with('menu_event.items.matherials.matherial')
-        ->with('menu_event.items.item')
-        ->with('event_pricing')
-        // ->with('menu_event')
-        ->where('id', $request->estimate_id)
-        ->get()
-        ->first();
+    public function edit(Request $request)
+    {
+        $estimate = $this->event->where('id', $request->estimate_id)
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->with('menu_event.items.ingredients.ingredient')
+            ->with('menu_event.items.matherials.matherial')
+            ->with('menu_event.items.item')
+            ->with('event_pricing')
+            // ->with('menu_event')
+            ->where('id', $request->estimate_id)
+            ->get()
+            ->first();
 
         return response()->json($estimate);
     }
 
-    public function store_item_to_menu_event(Request $request){
-        $item = $this->items->where('id',$request->item_id)
-        // ->with('ingredients.ingredient')
-        // ->with('ingredients.ingredient')
-        ->get()
-        ->first();
-        $menu_event = $this->menu_event->where("event_id",$request->estimate_id)
-        ->get()
-        ->first();
+    public function store_item_to_menu_event(Request $request)
+    {
+        $item = $this->items->where('id', $request->item_id)
+            // ->with('ingredients.ingredient')
+            // ->with('ingredients.ingredient')
+            ->get()
+            ->first();
+        $menu_event = $this->menu_event->where("event_id", $request->estimate_id)
+            ->get()
+            ->first();
         $menu_event_has_new_item = MenuEventHasItem::create([
-            "menu_event_id"=>$menu_event->id,
-            "item_id"=>$item->id,
-            "cost"=>$item->cost,
-            "consumed_per_client"=>$item->consumed_per_client,
-            "unit"=>$item->unit
+            "menu_event_id" => $menu_event->id,
+            "item_id" => $item->id,
+            "cost" => $item->cost,
+            "consumed_per_client" => $item->consumed_per_client,
+            "unit" => $item->unit
         ]);
         return response()->json($item);
     }
 
-    public function delete_item_from_menu_event(Request $request){
-        $menu_event = $this->menu_event->where('event_id',$request->estimate_id)
-        ->get()
-        ->first();
-        
-        MenuEventHasItem::where('menu_event_id', $menu_event->id)
-        ->where('item_id', $request->item_id)
-        ->delete();
+    public function delete_item_from_menu_event(Request $request)
+    {
+        $menu_event = $this->menu_event->where('event_id', $request->estimate_id)
+            ->get()
+            ->first();
 
-        return response()->json(['message'=>'Item removido']);
+        MenuEventHasItem::where('menu_event_id', $menu_event->id)
+            ->where('item_id', $request->item_id)
+            ->delete();
+
+        return response()->json(['message' => 'Item removido']);
     }
-    public function create_multiple_estimates(){
+    public function create_multiple_estimates()
+    {
         $menus = $this->menu->get()->all();
 
         return response()->json($menus);
     }
 
-    public function store_multiple_estimates(Request $request){
+    public function store_multiple_estimates(Request $request)
+    {
         $menusSlugs = $request->menus;
         $profits = $request->menuProfits;
-        $client = $this->client->where("id",$request->client_id)->with("address")
-        ->get()
-        ->first();
-
-        $date = $request->estimateDate;
-        $date = substr($date,0,-14);
-        
-        foreach($menusSlugs as $menuSlug){
-            $menuProfit = 0;
-            $menu = $this->menu->where("slug",$menuSlug)
+        $client = $this->client->where("id", $request->client_id)->with("address")
             ->get()
             ->first();
 
-            if(!$menu)
-                return response()->json(['data'=>'Invalid Slug']);
+        $date = $request->estimateDate;
+        $date = substr($date, 0, -14);
+
+        foreach ($menusSlugs as $menuSlug) {
+            $menuProfit = 0;
+            $menu = $this->menu->where("slug", $menuSlug)
+                ->get()
+                ->first();
+
+            if (!$menu)
+                return response()->json(['data' => 'Invalid Slug']);
 
             $estimate = Event::create([
                 "menu_id" => $menu->id,
                 "client_id" => $client["id"],
                 "address_id" => $client["address_id"],
                 "type" => EventType::OPEN_ESTIMATE->name,
-                "guests_amount"=>$request->guestsAmount,
-                "date"=> $date,
-                "time"=> $request->estimateTime
+                "guests_amount" => $request->guestsAmount,
+                "date" => $date,
+                "time" => $request->estimateTime
             ]);
 
-            if(!$estimate) {
-                return response()->json(["data"=>"Erro no salvamento do orçamento"], 404);
+            if (!$estimate) {
+                return response()->json(["data" => "Erro no salvamento do orçamento"], 404);
             }
-            
+
             $menu_event = MenuEvent::create([
-                "menu_id" =>$menu->id,
-                'event_id' =>$estimate->id
+                "menu_id" => $menu->id,
+                'event_id' => $estimate->id
             ]);
 
-            foreach($menu->items as $item1){
-                
+            $data_cost = 0;
+
+            foreach ($menu->items as $item1) {
+
                 $item = $item1['item'];
-                $item = $this->items->where('id',$item['id'])
-                ->with("ingredients.ingredient")
-                ->with("matherials.matherial")
-                ->get()
-                ->first();
+                $item = $this->items->where('id', $item['id'])
+                    ->with("ingredients.ingredient")
+                    ->with("matherials.matherial")
+                    ->get()
+                    ->first();
+
+                $costPerGuest = $item->cost * $item->consumed_per_client; // Custo por convidado
+                $data_cost += $costPerGuest * $request->guestsAmount; // Custo total para todos os convidados
 
                 $menu_event_has_items = MenuEventHasItem::create([
-                    "menu_event_id"=> $menu_event->id,
+                    "menu_event_id" => $menu_event->id,
                     "item_id" => $item->id,
-                    "cost"=>$item->cost,
-                    "consumed_per_client"=>$item->consumed_per_client,
-                    "unit"=>$item->unit
+                    "cost" => $item->cost,
+                    "consumed_per_client" => $item->consumed_per_client,
+                    "unit" => $item->unit
                 ]);
 
-                foreach($item->ingredients as $ingredient){
+                foreach ($item->ingredients as $ingredient) {
                     $menu_event_has_ingredients = MenuEventItemHasIngredient::create([
-                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "menu_event_has_items_id" => $menu_event_has_items->id,
                         "ingredient_id" => $ingredient->ingredient_id,
-                        "proportion_per_item" =>$ingredient->proportion_per_item,
-                        "unit"=>$ingredient->unit
+                        "proportion_per_item" => $ingredient->proportion_per_item,
+                        "unit" => $ingredient->unit
                     ]);
                 }
 
-                foreach($item->matherials as $matherial){
+                foreach ($item->matherials as $matherial) {
                     $menu_event_has_matherials = MenuEventItemHasMatherial::create([
-                        "menu_event_has_items_id"=> $menu_event_has_items->id,
+                        "menu_event_has_items_id" => $menu_event_has_items->id,
                         "matherial_id" => $matherial->matherial_id,
                     ]);
                 }
             }
-            
-            foreach($profits as $key=>$profit){
-                if($menu->slug == $key)
+
+            foreach ($profits as $key => $profit) {
+                if ($menu->slug == $key)
                     $menuProfit = $profit;
             }
+            $fixed_cost = 0;
+            $fixed_costs = $this->mount_costs($menu, $request->guestsAmount);
+            foreach ($fixed_costs as $cost) {
+                if ($cost['type'] !== MenuInformationType::SERVICES->name) {
+                    $fixed_cost += $cost['unit_price'] * $cost['quantity'];
+                } else {
+                    $fixed_cost += $cost['quantity'] * ($data_cost + $menuProfit);
+                }
+                if ($cost['type'] == MenuInformationType::EMPLOYEES->name) {
+                    EventRoleInformation::create([
+                        "event_id" => $estimate->id,
+                        "unit_price" => $cost['unit_price'],
+                        "quantity" => $cost['quantity'],
+                        "menu_has_role_quantities_id" => $cost['id']
+                    ]);
+                } else {
+                    EventInformation::create([
+                        "event_id" => $estimate->id,
+                        "unit_price" => $cost['unit_price'],
+                        "quantity" => $cost['quantity'],
+                        "menu_information_id" => $cost['id']
+                    ]);
+                }
+            }
+
+            $total = $fixed_cost + $data_cost + $menuProfit;
 
             $estimate_pricing = EventPricing::create([
                 "event_id" => $estimate->id,
                 "profit" => $menuProfit,
                 "agency" => 0,
-                "data_cost" => 0,
-                "fixed_cost"=> 0,
-                "total"=> 0
+                "data_cost" => $data_cost,
+                "fixed_cost" => $fixed_cost,
+                "total" => $total
             ]);
 
-            if(!$estimate_pricing) {
-                return response()->json(["data"=>"Erro no salvamento das precificaçoes do orçamento"], 404);
+            if (!$estimate_pricing) {
+                return response()->json(["data" => "Erro no salvamento das precificaçoes do orçamento"], 404);
             }
         }
-        return response()->json(["data"=>"Sucesso no Cadastro!"]);
+        return response()->json(["data" => "Sucesso no Cadastro!"]);
     }
-    public function multiple_estimates_menus(Request $request){
+    public function multiple_estimates_menus(Request $request)
+    {
         $slugs = $request->menuSlugs; // ['menu-a', 'menu-b']
+        if (!$slugs) {
+            return response()->json([
+                'message' => 'Please provide a menu slug'
+            ], 400);
+        }
+        $quantity = $request->num_guests;
+        if (!$quantity) {
+            return response()->json([
+                'message' => 'Please provide a quantity'
+            ], 400);
+        }
+        if (!is_numeric($quantity)) {
+            return response()->json([
+                'message' => 'Please provide a valid quantity'
+            ], 400);
+        }
+        if ($quantity < $this->minGuests) {
+            return response()->json([
+                'message' => 'Please provide a quantity greater than or equal ' . $this->minGuests
+            ], 400);
+        }
 
         // Busca os orçamentos no banco com base nos slugs
-        $estimates = Menu::whereIn('slug', $slugs)->with('items.item')->get();
+        $estimates = Menu::whereIn('slug', $slugs)
+            ->with('items.item')
+            ->get();
+        foreach ($estimates as $estimate) {
+            $dataCost = 0;
+
+            // Itera sobre os itens do menu e calcula o custo total
+            foreach ($estimate->items as $menuItem) {
+                $item = $menuItem->item; // Acessa o item relacionado
+                $costPerGuest = $item->cost * $item->consumed_per_client; // Custo por convidado
+                $dataCost += $costPerGuest * $quantity; // Custo total para todos os convidados
+            }
+
+            $estimate->data_cost = $dataCost;
+            $estimate->makeHidden('items');
+
+            $costs = $this->mount_costs($estimate, $quantity);
+            $estimate->costs = $costs;
+        }
         return response()->json($estimates);
     }
-    public function add_client_session(Request $request) {
+    public function add_client_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
         $client = $request->client;
-        if(!$client) {
+        if (!$client) {
             return response()->json([
                 'message' => 'Please provide a client'
             ], 400);
         }
 
         $client = $this->client->where('id', $client)->first();
-        if(!$client) {
+        if (!$client) {
             return response()->json([
                 'message' => 'Invalid client id'
             ], 404);
         }
 
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
 
         Redis::hset($key, "client", json_encode($client));
         Redis::expire($key, $this->expiresAt);
@@ -257,7 +333,8 @@ class EstimateController extends Controller
             'message' => 'Client added successfully',
         ]);
     }
-    public function show(Request $request){
+    public function show(Request $request)
+    {
         $estimate_id = $request->estimate_id;
 
         $event = $this->event
@@ -268,135 +345,139 @@ class EstimateController extends Controller
             ->get()
             ->first();
 
-        if(!$event) {
-            return response()->json(["data"=>"Invalid event id"], 404);
+        if (!$event) {
+            return response()->json(["data" => "Invalid event id"], 404);
         }
-        
+
         return response()->json([
-            'event'=>$event,
+            'event' => $event,
         ]);
     }
 
-    public function items(Request $request){
+    public function items(Request $request)
+    {
         $id = $request->estimate_id;
 
         $estimate = $this->event
-        ->with('menu')
-        ->with('client')
-        ->with('address')
-        ->with('menu_event.items.ingredients.ingredient')
-        ->with('menu_event.items.matherials.matherial')
-        ->with('menu_event.items.item')
-        // ->with('menu_event')
-        ->where('id', $id)
-        ->get()
-        ->first();
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->with('menu_event.items.ingredients.ingredient')
+            ->with('menu_event.items.matherials.matherial')
+            ->with('menu_event.items.item')
+            // ->with('menu_event')
+            ->where('id', $id)
+            ->get()
+            ->first();
 
         $items = $this->event_items_flow
-                        ->where('event_id', $id)
-                        ->with('item')
-                        ->get();
+            ->where('event_id', $id)
+            ->with('item')
+            ->get();
 
-        if(!$estimate) {
-            return response()->json(["data"=>"Invalid event id"], 404);
+        if (!$estimate) {
+            return response()->json(["data" => "Invalid event id"], 404);
         }
 
         return response()->json([
-            'estimate' =>$estimate,
-            'changedItems'=>$items
+            'estimate' => $estimate,
+            'changedItems' => $items
         ]);
     }
-    public function search_items(Request $request){
+    public function search_items(Request $request)
+    {
         $estimateId = $request->estimate_id;
         $filteredItems = Item::whereNotIn('id', function ($query) use ($estimateId) {
             $query->select('item_id')
-                  ->from('menu_event_has_items')
-                  ->where('menu_event_id', $estimateId);
+                ->from('menu_event_has_items')
+                ->where('menu_event_id', $estimateId);
         })->get();
-    
+
         return response()->json($filteredItems);
     }
 
-    public function update(Request $request){
-        $estimate = $this->event->where('id',$request->estimate_id)
-        ->with('menu')
-        ->with('client')
-        ->with('address')
-        ->with('menu_event.items.ingredients.ingredient')
-        ->with('menu_event.items.matherials.matherial')
-        ->with('menu_event.items.item')
-        ->with("event_pricing")
-        ->get()
-        ->first();
+    public function update(Request $request)
+    {
+        $estimate = $this->event->where('id', $request->estimate_id)
+            ->with('menu')
+            ->with('client')
+            ->with('address')
+            ->with('menu_event.items.ingredients.ingredient')
+            ->with('menu_event.items.matherials.matherial')
+            ->with('menu_event.items.item')
+            ->with("event_pricing")
+            ->get()
+            ->first();
 
-        $menu_event = $this->menu_event->where("event_id",$estimate->id)
-        ->get()
-        ->first();
+        $menu_event = $this->menu_event->where("event_id", $estimate->id)
+            ->get()
+            ->first();
 
-        if($request->changedItems['itemsToInsert']){
-            foreach($request->changedItems['itemsToInsert'] as $item){
+        if ($request->changedItems['itemsToInsert']) {
+            foreach ($request->changedItems['itemsToInsert'] as $item) {
                 $menu_event_has_item = MenuEventHasItem::create([
                     'menu_event_id' => $menu_event->id,
                     'item_id' => $item['id'],
-                    'cost'=> $item['cost'],
-                    'consumed_per_client'=>$item["consumed_per_client"],
-                    'unit'=>$item["unit"]
+                    'cost' => $item['cost'],
+                    'consumed_per_client' => $item["consumed_per_client"],
+                    'unit' => $item["unit"]
                 ]);
                 EventItemsFlow::create([
-                    'item_id' =>$item["id"],
-                    'event_id' =>$estimate->id,
-                    "status"=> ItemFlowType::INSERTED->name,
-                ]);             
+                    'item_id' => $item["id"],
+                    'event_id' => $estimate->id,
+                    "status" => ItemFlowType::INSERTED->name,
+                ]);
             }
         }
 
-        if($request->changedItems['itemsToRemove']){
-            foreach($request->changedItems['itemsToRemove'] as $item){
+        if ($request->changedItems['itemsToRemove']) {
+            foreach ($request->changedItems['itemsToRemove'] as $item) {
                 $menu_event_has_item = $this->menu_event_has_item
-                ->where('item_id',$item['id'])
-                ->delete();
+                    ->where('item_id', $item['id'])
+                    ->delete();
                 EventItemsFlow::create([
-                    'item_id' =>$item["id"],
-                    'event_id' =>$estimate->id,
-                    "status"=> ItemFlowType::REMOVED->name,
-                ]);           
+                    'item_id' => $item["id"],
+                    'event_id' => $estimate->id,
+                    "status" => ItemFlowType::REMOVED->name,
+                ]);
             }
         }
         $pricing = $request->estimate_pricing;
-        $estimate_pricing = $this->event_pricing->where('event_id',$estimate->id)->update([
+        $estimate_pricing = $this->event_pricing->where('event_id', $estimate->id)->update([
             "event_id" => $estimate->id,
-            "profit" =>$pricing["profit"],
-            "agency" =>$pricing["agency"],
-            "data_cost" =>$pricing["data_cost"],
-            "fixed_cost"=> 0,
-            "total"=>$pricing["total"]
+            "profit" => $pricing["profit"],
+            "agency" => $pricing["agency"],
+            "data_cost" => $pricing["data_cost"],
+            "fixed_cost" => 0,
+            "total" => $pricing["total"]
         ]);
 
 
-        return response()->json(["data"=>"Orçamento Atualizado com Sucesso!"]);
+        return response()->json(["data" => "Orçamento Atualizado com Sucesso!"]);
     }
 
-    public function create_session(Request $request) {
+    public function create_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
 
         $data = Redis::hgetall($key);
 
-        if(count($data) == 0) {
+        if (count($data) == 0) {
             $menu = $request->menu;
-            if(!$menu) {
+            if (!$menu) {
                 return response()->json([
                     'message' => 'Please provide a menu',
                 ], 400);
             }
             $menu = $this->menu->where('slug', $menu)->first();
-            if(!$menu) {
+            if (!$menu) {
                 return response()->json([
                     'message' => 'Invalid menu slug'
                 ], 404);
@@ -404,11 +485,11 @@ class EstimateController extends Controller
             $costs = [];
             try {
                 $costs = $this->mount_costs($menu, $this->initialGuests);
-            } catch(Exception $e) {
+            } catch (Exception $e) {
                 return response()->json([
                     'message' => $e->getMessage()
                 ], 400);
-            }            
+            }
             Redis::hset($key, "menu", $menu->slug);
             Redis::hset($key, "guests", $this->minGuests);
             Redis::hset($key, "items", json_encode([]));
@@ -431,62 +512,63 @@ class EstimateController extends Controller
 
         return response()->json([
             'message' => 'Session created successfully',
-            'data'=>[
-                'menu'=>$menu,
-                'initial_guests'=>$data['guests'],
-                'min_guests'=>$this->minGuests,
-                'client'=>json_decode($data['client'], true),
+            'data' => [
+                'menu' => $menu,
+                'initial_guests' => $data['guests'],
+                'min_guests' => $this->minGuests,
+                'client' => json_decode($data['client'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
     }
 
-    public function store_item_session(Request $request) {
+    public function store_item_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
         $item_id = $request->item_id;
-        if(!$item_id) {
+        if (!$item_id) {
             return response()->json([
                 'message' => 'Please provide an item_id'
             ], 400);
         }
 
-        $existsInRedis = Redis::exists('session:'.$id);
-        if(!$existsInRedis) {
+        $existsInRedis = Redis::exists('session:' . $id);
+        if (!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
 
-        $menu = Redis::hget('session:'.$id, 'menu');
-        if(!$menu) {
+        $menu = Redis::hget('session:' . $id, 'menu');
+        if (!$menu) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
-        
-        $items = Redis::hget('session:'.$id, 'items');
+
+        $items = Redis::hget('session:' . $id, 'items');
         $items = json_decode($items, true);
-        if(!is_array($items)) {
-            Redis::hset('session:'.$id, 'items', json_encode([]));
+        if (!is_array($items)) {
+            Redis::hset('session:' . $id, 'items', json_encode([]));
             $items = [];
         }
 
         // $data = json_decode($data, true);
         $menu = $this->menu->where('slug', $menu)->first();
-        if(!$menu) {
+        if (!$menu) {
             return response()->json([
                 'message' => 'Invalid menu slug'
             ], 404);
         }
 
         $item = $this->items->find($item_id);
-        if(!$item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Invalid item id'
             ], 404);
@@ -494,44 +576,45 @@ class EstimateController extends Controller
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item_id)->get()->first();
         $exist_in_redis = in_array($item_id, array_column($items, 'id'));
-        if($exist_in_original_menu || $exist_in_redis) {
+        if ($exist_in_original_menu || $exist_in_redis) {
             return response()->json([
                 'message' => 'Item already exists'
             ], 400);
         }
 
         $items[] = [
-            'id'=>$item_id,
-            "type"=>'add'
+            'id' => $item_id,
+            "type" => 'add'
         ];
 
-        Redis::hset('session:'.$id, 'items', json_encode($items));
+        Redis::hset('session:' . $id, 'items', json_encode($items));
 
         return response()->json([
             'message' => 'Item added to session successfully',
         ]);
     }
 
-    public function show_menu_items(Request $request) {
+    public function show_menu_items(Request $request)
+    {
         $menu_slug = $request->menu_slug;
         if (!$menu_slug) {
             return response()->json([
                 'message' => 'Please provide a menu_slug'
             ], 400);
         }
-    
+
         $menu = $this->menu->where('slug', $menu_slug)->first();
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
 
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
-    
+
         $items = $this->menu_has_item
             ->where('menu_id', $menu->id)
             ->whereHas('item', function ($query) {
@@ -540,8 +623,8 @@ class EstimateController extends Controller
             ->with('item')
             ->get()
             ->pluck('item');
-            
-    
+
+
         $data = json_decode(Redis::hget('session:' . $id, 'items'), true);
         if (!$data && count($items) == 0) {
             return response()->json($items);
@@ -563,16 +646,16 @@ class EstimateController extends Controller
                     break;
             }
         }
-    
+
         // Remove items
         $items = $items->filter(function ($item) use ($remove_items) {
             return !in_array($item->id, $remove_items);
         });
-    
+
         // Add new items
         $new_items = $this->items->whereIn('id', $add_items)->get();
         $items = $items->merge($new_items);
-    
+
         // Modify items
         $items = $items->map(function ($item) use ($modifies) {
             if (isset($modifies[$item->id])) {
@@ -580,19 +663,20 @@ class EstimateController extends Controller
             }
             return $item;
         });
-    
+
         return response()->json($items);
     }
 
-    public function add_item_session(Request $request) {
+    public function add_item_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $data = Redis::hgetall('session:'.$id);
-        if(!$data) {
+        $data = Redis::hgetall('session:' . $id);
+        if (!$data) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
@@ -616,11 +700,11 @@ class EstimateController extends Controller
                 ->orderByDesc('created_at')
                 // ->paginate(10)
                 ->get();
-                // ->withQueryString();
+            // ->withQueryString();
         }
         $add_items = [];
         $remove_items = [];
-    
+
         foreach ($data['items'] as $item) {
             switch ($item['type']) {
                 case 'add':
@@ -652,22 +736,23 @@ class EstimateController extends Controller
         return response()->json(['menu' => $menu, 'items' => array_values($items->toArray())]);
     }
 
-    public function modify_item_session(Request $request) { // fazer dnv depois
+    public function modify_item_session(Request $request)
+    { // fazer dnv depois
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $data = Redis::get('session:'.$id);
-        if(!$data) {
+        $data = Redis::get('session:' . $id);
+        if (!$data) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
 
         $modify = $request->item;
-        if(!$modify['id'] || !$modify['value']) {
+        if (!$modify['id'] || !$modify['value']) {
             return response()->json([
                 'message' => 'Please provide an item and a value'
             ], 400);
@@ -680,61 +765,62 @@ class EstimateController extends Controller
         }
 
         $item = $this->items->where('id', $modify->id)->get()->first();
-        if(!$item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Invalid item id'
             ], 404);
         }
-        $data['menu'] = $menu->slug; 
+        $data['menu'] = $menu->slug;
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item->id)->get()->first();
         $exist_in_redis = in_array($item['id'], array_column($data['items'], 'id'));
-        if(!$exist_in_original_menu || !$exist_in_redis) {
+        if (!$exist_in_original_menu || !$exist_in_redis) {
             return response()->json([
                 'message' => 'Item not found'
             ], 400);
         }
         $data['items'][] = [
-            'id'=>$item->id,
-            "type"=>'modify',
-            "value"=>$modify['value']
+            'id' => $item->id,
+            "type" => 'modify',
+            "value" => $modify['value']
         ];
 
-        Redis::set('session:'.$id, json_encode($data), 'EX', $this->expiresAt);
+        Redis::set('session:' . $id, json_encode($data), 'EX', $this->expiresAt);
 
         return response()->json([
             'message' => 'Item modified successfully',
         ]);
     }
 
-    public function remove_item_session(Request $request) {
+    public function remove_item_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $existsInRedis = Redis::exists('session:'.$id);
-        if(!$existsInRedis) {
+        $existsInRedis = Redis::exists('session:' . $id);
+        if (!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
         }
-        $menu_slug = Redis::hget('session:'.$id, 'menu');
-        if(!$menu_slug) {
+        $menu_slug = Redis::hget('session:' . $id, 'menu');
+        if (!$menu_slug) {
             return response()->json([
                 'message' => 'Menu not found'
             ], 404);
         }
-        $items = Redis::hget('session:'.$id, 'items');
+        $items = Redis::hget('session:' . $id, 'items');
         $items = json_decode($items, true);
-        if(!is_array($items)) {
-            Redis::hset('session:'.$id, 'items', json_encode([]));
+        if (!is_array($items)) {
+            Redis::hset('session:' . $id, 'items', json_encode([]));
             $items = [];
         }
-        
+
         $remove = $request->item_id;
-        if(!$remove) {
+        if (!$remove) {
             return response()->json([
                 'message' => 'Please provide an item'
             ], 400);
@@ -746,51 +832,52 @@ class EstimateController extends Controller
         }
 
         $item = $this->items->where('id', $remove)->get()->first();
-        if(!$item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Invalid item id'
             ], 404);
         }
 
         $exist_in_redis = in_array($item['id'], array_column($items, 'id'));
-        if($exist_in_redis) {
+        if ($exist_in_redis) {
             $index = array_search($item['id'], array_column($items, 'id'));
             if ($index !== false) {
                 array_splice($items, $index, 1);
-            }        
+            }
         }
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item->id)->get()->first();
-        if($exist_in_original_menu) {
+        if ($exist_in_original_menu) {
             $items[] = [
-                'id'=>$item->id,
-                "type"=>'remove'
+                'id' => $item->id,
+                "type" => 'remove'
             ];
         }
-        
-        if(!$exist_in_original_menu && !$exist_in_redis) {
+
+        if (!$exist_in_original_menu && !$exist_in_redis) {
             return response()->json([
                 'message' => 'Item not found'
             ], 400);
         }
 
-        Redis::hset('session:'.$id, 'items', json_encode($items));
-        
+        Redis::hset('session:' . $id, 'items', json_encode($items));
+
         return response()->json([
             'message' => 'Item removed successfully',
             // 'data'=>$data,
         ]);
     }
 
-    public function change_menu_session(Request $request) {
+    public function change_menu_session(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
-        $existsInRedis = Redis::exists('session:'.$id);
-        if(!$existsInRedis) {
+        $existsInRedis = Redis::exists('session:' . $id);
+        if (!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 404);
@@ -801,7 +888,7 @@ class EstimateController extends Controller
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
 
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
 
         Redis::hset($key, 'menu', $menu->slug);
         Redis::hset($key, 'items', json_encode([]));
@@ -812,14 +899,15 @@ class EstimateController extends Controller
         ]);
     }
 
-    public function get_menu_costs(Request $request) {
+    public function get_menu_costs(Request $request)
+    {
         $quantity = $request->quantity;
-        if(!$quantity) {
+        if (!$quantity) {
             return response()->json([
                 'message' => 'Please provide a quantity'
             ], 400);
         }
-        if($quantity < $this->minGuests) {
+        if ($quantity < $this->minGuests) {
             return response()->json([
                 'message' => 'Invalid number of guests'
             ], 400);
@@ -830,16 +918,16 @@ class EstimateController extends Controller
                 'message' => 'Please provide a menu_slug'
             ], 400);
         }
-    
+
         $menu = $this->menu->where('slug', $menu_slug)->first();
         if (!$menu) {
             return response()->json(["data" => "Invalid menu slug"], 404);
         }
         $id = $request->user_id;
-        if($id) {
-            $key = 'session:'.$id;
+        if ($id) {
+            $key = 'session:' . $id;
             $existsInRedis = Redis::exists($key);
-            if(!$existsInRedis) {
+            if (!$existsInRedis) {
                 return response()->json([
                     'message' => 'Session not found'
                 ], 404);
@@ -848,8 +936,8 @@ class EstimateController extends Controller
             $data = Redis::hget($key, 'costs');
             $guests = Redis::hget($key, 'guests');
             $data = json_decode($data, true);
-            if($data) {
-                if($guests == $quantity)
+            if ($data) {
+                if ($guests == $quantity)
                     return response()->json($data);
                 // $merged = $this->mount_costs($menu, $quantity);
 
@@ -859,24 +947,25 @@ class EstimateController extends Controller
 
         try {
             $merged = $this->mount_costs($menu, $quantity);
-        } catch(Exception $e) {
+        } catch (Exception $e) {
             return response()->json([
                 'message' => $e->getMessage()
             ], 400);
         }
-        
+
         return response()->json($merged);
     }
 
-    private function mount_costs(Menu $menu, int $quantity) {
+    private function mount_costs(Menu $menu, int $quantity)
+    {
         $role_quantity = $this->menu_has_role_quantity
-                                    ->where('menu_id', $menu->id)
-                                    ->whereHas('quantity', function ($query) use($quantity) {
-                                        $query->where('guests_init', '<=', $quantity)
-                                              ->where('guests_end', '>=', $quantity);
-                                    })
-                                    ->get();
-        if(count($role_quantity) == 0) {
+            ->where('menu_id', $menu->id)
+            ->whereHas('quantity', function ($query) use ($quantity) {
+                $query->where('guests_init', '<=', $quantity)
+                    ->where('guests_end', '>=', $quantity);
+            })
+            ->get();
+        if (count($role_quantity) == 0) {
             throw new \Exception('Invalid number of guests');
             // return response()->json([
             //     'message' => 'Invalid number of guests'
@@ -885,7 +974,7 @@ class EstimateController extends Controller
         $informations = $this->menu_information->get();
 
 
-        $role_information = collect($role_quantity->map(function($information) {
+        $role_information = collect($role_quantity->map(function ($information) {
             return [
                 'id' => $information->quantity->id, // id do relacionamento
                 'name' => $information->quantity->role->name,
@@ -902,53 +991,54 @@ class EstimateController extends Controller
         return $merged;
     }
 
-    public function change_cost_data(Request $request) {
+    public function change_cost_data(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
         $cost_id = $request->cost_id;
-        if(!$cost_id) {
+        if (!$cost_id) {
             return response()->json([
                 'message' => 'Please provide an cost_id'
             ], 400);
         }
         $row = $request->row;
-        if(!$row) {
+        if (!$row) {
             return response()->json([
                 'message' => 'Please provide an row'
             ], 400);
         }
-        if(!in_array($row, ['unit_price', 'quantity'])) {
+        if (!in_array($row, ['unit_price', 'quantity'])) {
             return response()->json([
                 'message' => 'Invalid row'
             ], 400);
         }
 
         $value = $request->value;
-        if(!$value) {
+        if (!$value) {
             return response()->json([
                 'message' => 'Please provide a new value'
             ], 400);
         }
-        if(!is_numeric($value) || $value < 0) {
+        if (!is_numeric($value) || $value < 0) {
             return response()->json([
                 'message' => 'Invalid value'
             ], 422);
         }
         $type = $request->type;
-        if(!$type) {
+        if (!$type) {
             return response()->json([
                 'message' => 'Please provide the type'
             ], 400);
         }
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
 
         $existsInRedis = Redis::exists($key);
-        if(!$existsInRedis) {
+        if (!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 422);
@@ -965,9 +1055,9 @@ class EstimateController extends Controller
         $found = false;
         foreach ($costs as &$cost) {
             if ($cost['id'] === $cost_id && $cost['type'] === $type) {
-                if($row == 'unit_price') {
+                if ($row == 'unit_price') {
                     $cost['unit_price'] = $value; // Atualiza o valor
-                } else if($row == 'quantity') {
+                } else if ($row == 'quantity') {
                     $cost['quantity'] = $value; // Atualiza o valor
                 }
                 $found = true;
@@ -986,19 +1076,20 @@ class EstimateController extends Controller
         return response()->json("Adicionado com sucesso");
     }
 
-    public function get_session_by_user(Request $request) {
+    public function get_session_by_user(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
 
         $data = Redis::hgetall($key);
 
-        if(count($data) == 0) {
+        if (count($data) == 0) {
             return response()->json([
                 'message' => 'Session not found'
             ], 400);
@@ -1008,19 +1099,20 @@ class EstimateController extends Controller
 
         return response()->json([
             'message' => 'Session created successfully',
-            'data'=>[
-                'menu'=>$menu,
-                'initial_guests'=>$data['guests'],
-                'min_guests'=>$this->minGuests,
-                'client'=>json_decode($data['client'], true),
+            'data' => [
+                'menu' => $menu,
+                'initial_guests' => $data['guests'],
+                'min_guests' => $this->minGuests,
+                'client' => json_decode($data['client'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
     }
 
-    public function save_estimate(Request $request) {
+    public function save_estimate(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
@@ -1034,18 +1126,18 @@ class EstimateController extends Controller
             'address.state' => ['required', 'string', 'size:2'], // Valida o estado com 2 caracteres
             'address.city' => ['required', 'string', 'max:255'],
             'address.complement' => ['nullable', 'string', 'max:255'], // Campo opcional
-        
+
             // 'details.name' => ['required', 'string', 'max:255'],
             // 'details.email' => ['required', 'email', 'max:255'], // Valida o formato de email
             // 'details.phone' => ['required', 'regex:/^\(\d{2}\) \d{4,5}-\d{4}$/'], // Valida o formato do telefone (xx) xxxxx-xxxx
-        
+
             'event.date' => ['required', 'date'], // Valida se é uma data válida
             'event.time' => ['required', 'regex:/^([01]\d|2[0-3]):([0-5]\d)$/'], // Valida o formato HH:mm
             // 'event.num_guests' => ['required', 'integer', 'min:1'], // Número de convidados deve ser maior que 0
-        
+
             'user_id' => ['required', 'uuid'], // Valida o formato UUID
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation failed',
@@ -1054,12 +1146,12 @@ class EstimateController extends Controller
         }
 
         $prices = $request->prices;
-        if(!$prices) {
+        if (!$prices) {
             return response()->json([
                 'message' => 'Please provide the prices'
             ], 400);
         }
-        if(!is_array($prices) || !isset($prices['profit']) || !isset($prices['agency'] )|| !isset($prices['cost']) || !isset($prices['data_cost'])) {
+        if (!is_array($prices) || !isset($prices['profit']) || !isset($prices['agency']) || !isset($prices['cost']) || !isset($prices['data_cost'])) {
             return response()->json([
                 'message' => 'Invalid prices'
             ], 400);
@@ -1068,25 +1160,25 @@ class EstimateController extends Controller
         $address = $request->address;
         // $details = $request->details;
         $event = $request->event;
-        
-        $key = 'session:'.$id;
+
+        $key = 'session:' . $id;
 
         $data = Redis::hgetall($key);
 
-        if(count($data) == 0) {
+        if (count($data) == 0) {
             return response()->json([
                 'message' => 'Session not found'
             ], 400);
         }
 
         $client = json_decode($data['client'], true);
-        if(!$client) {
+        if (!$client) {
             return response()->json([
                 'message' => 'Please provide a client using the route PATCH /api/estimate/client'
             ], 400);
         }
         $client = $this->client->where('id', $client['id'])->first();
-        if(!$client) {
+        if (!$client) {
             return response()->json([
                 'message' => 'Invalid client id'
             ], 404);
@@ -1095,32 +1187,32 @@ class EstimateController extends Controller
         $menu = $this->menu->where('slug', $data['menu'])->first();
 
         $address = $this->address->create([
-            'zipcode'=>$address['zipcode'],
-            'street'=>$address['street'],
-            'number'=>$address['number'],
-            'neighborhood'=>$address['neighborhood'],
-            'state'=>$address['state'],
-            'city'=>$address['city'],
-            'complement'=>$address['complement'],
-            "country"=>"Brasil",
+            'zipcode' => $address['zipcode'],
+            'street' => $address['street'],
+            'number' => $address['number'],
+            'neighborhood' => $address['neighborhood'],
+            'state' => $address['state'],
+            'city' => $address['city'],
+            'complement' => $address['complement'],
+            "country" => "Brasil",
         ]);
 
         $eventDate = date('Y-m-d', strtotime($event['date']));
 
         $event = $this->event->create([
-            'date'=>$eventDate,
-            'time'=>$event['time'],
+            'date' => $eventDate,
+            'time' => $event['time'],
             // 'guests_amount'=>$event['num_guests'],
-            'guests_amount'=>$data['guests'],
-            'client_id'=>$client->id,
-            "menu_id"=>$menu->id,
-            "address_id"=>$address->id,
-            "type"=>EventType::OPEN_ESTIMATE->name,
+            'guests_amount' => $data['guests'],
+            'client_id' => $client->id,
+            "menu_id" => $menu->id,
+            "address_id" => $address->id,
+            "type" => EventType::OPEN_ESTIMATE->name,
         ]);
 
         $menu_event = $this->menu_event->create([
-            "menu_id"=>$menu->id,
-            "event_id"=>$event->id
+            "menu_id" => $menu->id,
+            "event_id" => $event->id
         ]);
 
         // pegando os itens
@@ -1151,36 +1243,36 @@ class EstimateController extends Controller
         }
 
         // Indica os itens que foram removidos e adicionados no menu
-        foreach($removeIds as $removeId) {
+        foreach ($removeIds as $removeId) {
             EventItemsFlow::create([
-                'item_id' =>$removeId,
-                'event_id' =>$event->id,
-                "status"=> ItemFlowType::REMOVED->name,
+                'item_id' => $removeId,
+                'event_id' => $event->id,
+                "status" => ItemFlowType::REMOVED->name,
             ]);
         }
-        foreach($addIds as $item){
+        foreach ($addIds as $item) {
             EventItemsFlow::create([
-                'item_id' =>$item,
-                'event_id' =>$event->id,
-                "status"=> ItemFlowType::INSERTED->name,
+                'item_id' => $item,
+                'event_id' => $event->id,
+                "status" => ItemFlowType::INSERTED->name,
             ]);
         }
-        foreach($modifies as $item){
+        foreach ($modifies as $item) {
             EventItemsFlow::create([
-                'item_id' =>$item,
-                'event_id' =>$event->id,
-                "status"=> ItemFlowType::MODIFIED->name,
+                'item_id' => $item,
+                'event_id' => $event->id,
+                "status" => ItemFlowType::MODIFIED->name,
             ]);
         }
 
-        
+
         $items = $menuItems->filter(fn($item) => !$removeIds->contains($item->id));
         // Adiciona novos itens (que não estavam originalmente no menu)
         if ($addIds->isNotEmpty()) {
             $newItems = $this->items->whereIn('id', $addIds)->get();
             $items = $items->merge($newItems);
         }
-        
+
 
         // Aplica modificações (preço, quantidade, etc.)
         $items = $items->map(function ($item) use ($modifies) {
@@ -1189,7 +1281,7 @@ class EstimateController extends Controller
             }
             return $item;
         });
-        
+
         // salva no banco
         foreach ($items as $item) {
             // 1. Salvar na menu_event_has_items
@@ -1198,14 +1290,14 @@ class EstimateController extends Controller
                 'menu_event_id' => $menu_event->id,
                 'consumed_per_client' => $item->consumed_per_client ?? 0, // ajustar conforme necessário
                 'unit' => $item->unit ?? 'UNIT', // usa um valor default se necessário
-                'cost'=>$item->cost
+                'cost' => $item->cost
             ]);
-        
+
             // 2. Buscar materiais do item
             $materials = $item->matherials ?? $this->item_has_matherial
                 ->where('item_id', $item->id)
                 ->get();
-        
+
             foreach ($materials as $matherial) {
                 $this->menu_event_item_has_matherial->create([
                     'menu_event_has_items_id' => $menuEventItem->id,
@@ -1213,12 +1305,12 @@ class EstimateController extends Controller
                     // 'checked_at' permanece null por padrão
                 ]);
             }
-        
+
             // 3. Buscar ingredientes do item
             $ingredients = $item->ingredients ?? $this->item_has_ingredient
                 ->where('item_id', $item->id)
                 ->get();
-        
+
             foreach ($ingredients as $ingredient) {
                 $this->menu_event_item_has_ingredient->create([
                     'menu_event_has_items_id' => $menuEventItem->id,
@@ -1229,14 +1321,14 @@ class EstimateController extends Controller
                 ]);
             }
         }
-        
+
         $redisCostsRaw = Redis::hget('session:' . $id, 'costs');
         $redisCosts = json_decode($redisCostsRaw, true);
 
         $employeeCost = [];
         $generalCost = [];
-        foreach($redisCosts as $cost) {
-            if($cost['type'] == MenuInformationType::EMPLOYEES->name) {
+        foreach ($redisCosts as $cost) {
+            if ($cost['type'] == MenuInformationType::EMPLOYEES->name) {
                 array_push($employeeCost, $cost);
             } else {
                 array_push($generalCost, $cost);
@@ -1251,7 +1343,7 @@ class EstimateController extends Controller
                 'unit_price' => $cost['unit_price'], // Preço unitário
             ]);
         }
-        
+
         // Inserir os dados do generalCost no event_information
         foreach ($generalCost as $cost) {
             $this->event_information->create([
@@ -1276,8 +1368,8 @@ class EstimateController extends Controller
             'total' => $total,
         ]);
 
-        Redis::del('session:'.$id);
-        
+        Redis::del('session:' . $id);
+
         return response()->json([
             'message' => 'Estimate saved successfully',
             // 'data'=>[
@@ -1287,60 +1379,61 @@ class EstimateController extends Controller
             //     'event'=>$event,
             // ],
         ]);
-
     }
 
-    public function close_estimate(Request $request){
+    public function close_estimate(Request $request)
+    {
         $estimate = $this->event
-        ->where('id', $request->estimate_id)
-        ->first();
+            ->where('id', $request->estimate_id)
+            ->first();
 
-        if(!$estimate) {
-            return response()->json(["data"=>"Invalid event id"], 404);
+        if (!$estimate) {
+            return response()->json(["data" => "Invalid event id"], 404);
         }
         $estimate = $estimate->update([
-            "type" =>EventType::CLOSED_ESTIMATE->name
+            "type" => EventType::CLOSED_ESTIMATE->name
         ]);
         return response()->json([
-            "message"=>"Orçamento Fechado"
+            "message" => "Orçamento Fechado"
         ]);
         // return redirect()->route("all_estimates.index");
     }
 
-    public function change_item_consumed_per_client(Request $request) {
+    public function change_item_consumed_per_client(Request $request)
+    {
         $id = $request->user_id;
-        if(!$id) {
+        if (!$id) {
             return response()->json([
                 'message' => 'Please provide an id'
             ], 400);
         }
 
         $item = $request->item_id;
-        if(!$item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Please provide an item'
             ], 400);
         }
         $item = $this->items->where('id', $item)->get()->first();
-        if(!$item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Invalid item id'
             ], 404);
         }
         $consumed_per_client = $request->value;
-        if(!$consumed_per_client) {
+        if (!$consumed_per_client) {
             return response()->json([
                 'message' => 'Please provide a consumed_per_client'
             ], 400);
         }
-        if(!is_numeric($consumed_per_client) || $consumed_per_client < 0) {
+        if (!is_numeric($consumed_per_client) || $consumed_per_client < 0) {
             return response()->json([
                 'message' => 'Invalid consumed_per_client'
             ], 422);
         }
-        $key = 'session:'.$id;
+        $key = 'session:' . $id;
         $existsInRedis = Redis::exists($key);
-        if(!$existsInRedis) {
+        if (!$existsInRedis) {
             return response()->json([
                 'message' => 'Session not found'
             ], 422);
@@ -1354,7 +1447,7 @@ class EstimateController extends Controller
         }
         $found = false;
         foreach ($data as &$itemData) {
-            if($itemData['id'] === $item->id && $itemData['type'] === 'remove') {
+            if ($itemData['id'] === $item->id && $itemData['type'] === 'remove') {
                 // remover o item 
                 $index = array_search($itemData['id'], array_column($data, 'id'));
                 if ($index !== false) {
@@ -1371,7 +1464,7 @@ class EstimateController extends Controller
                 break; // Interrompe o loop
             }
         }
-        if($found) {
+        if ($found) {
             Redis::hset($key, 'items', json_encode($data));
             return response()->json([
                 'message' => 'Item modified successfully',
@@ -1379,7 +1472,7 @@ class EstimateController extends Controller
         }
 
         $menu_slug = Redis::hget($key, 'menu');
-        if(!$menu_slug) {
+        if (!$menu_slug) {
             return response()->json([
                 'message' => 'Menu not found'
             ], 404);
@@ -1391,15 +1484,15 @@ class EstimateController extends Controller
 
         $exist_in_original_menu = $this->menu_has_item->where('menu_id', $menu->id)->where('item_id', $item->id)->get()->first();
         $exist_in_redis = in_array($item['id'], array_column($data, 'id'));
-        if(!$exist_in_original_menu && !$exist_in_redis) {
+        if (!$exist_in_original_menu && !$exist_in_redis) {
             return response()->json([
                 'message' => 'Item not found'
             ], 400);
         }
         $data[] = [
-            'id'=>$item->id,
-            "type"=>'modify',
-            "value"=>$consumed_per_client
+            'id' => $item->id,
+            "type" => 'modify',
+            "value" => $consumed_per_client
         ];
 
         Redis::hset($key, 'items', json_encode($data));
@@ -1408,32 +1501,33 @@ class EstimateController extends Controller
         ]);
     }
 
-    public function get_estimate_costs(Request $request) {
+    public function get_estimate_costs(Request $request)
+    {
         $estimate_id = $request->estimate_id;
-        if(!$estimate_id) {
+        if (!$estimate_id) {
             return response()->json([
                 'message' => 'Please provide an estimate_id'
             ], 400);
         }
         $estimate = $this->event
-        ->where('id', $estimate_id)
-        ->where('type', EventType::OPEN_ESTIMATE->name)
-        ->first();
-        if(!$estimate) {
+            ->where('id', $estimate_id)
+            ->where('type', EventType::OPEN_ESTIMATE->name)
+            ->first();
+        if (!$estimate) {
             return response()->json([
                 'message' => 'Invalid estimate id'
             ], 404);
         }
         $event_role_information = $this->event_role_information
-        ->where('event_id', $estimate->id)
-        ->with('menu_has_role_quantities.quantity.role')
-        ->get();
+            ->where('event_id', $estimate->id)
+            ->with('menu_has_role_quantities.quantity.role')
+            ->get();
         $event_information = $this->event_information
-        ->where('event_id', $estimate->id)
-        ->with('menu_information')
-        ->get();
+            ->where('event_id', $estimate->id)
+            ->with('menu_information')
+            ->get();
 
-        $event_information = collect($event_information->map(function($information) {
+        $event_information = collect($event_information->map(function ($information) {
             return [
                 'id' => $information->menu_information->id, // id do relacionamento
                 'name' => $information->menu_information->name,
@@ -1444,7 +1538,7 @@ class EstimateController extends Controller
                 'type' => $information->menu_information->type
             ];
         }));
-        $event_role_information = collect($event_role_information->map(function($information) {
+        $event_role_information = collect($event_role_information->map(function ($information) {
             return [
                 'id' => $information->menu_has_role_quantities->id, // id do relacionamento
                 'name' => $information->menu_has_role_quantities->quantity->role->name,
@@ -1460,22 +1554,23 @@ class EstimateController extends Controller
 
         return response()->json([
             'message' => 'Estimate found successfully',
-            'data'=>[
-                'costs'=>$event_costs,
-                'prices'=>[
-                    'profit'=>$estimate->event_pricing->profit,
-                    'agency'=>$estimate->event_pricing->agency,
-                    'data_cost'=>$estimate->event_pricing->data_cost,
-                    'fixed_cost'=>$estimate->event_pricing->fixed_cost,
-                    'total'=>$estimate->event_pricing->total,
+            'data' => [
+                'costs' => $event_costs,
+                'prices' => [
+                    'profit' => $estimate->event_pricing->profit,
+                    'agency' => $estimate->event_pricing->agency,
+                    'data_cost' => $estimate->event_pricing->data_cost,
+                    'fixed_cost' => $estimate->event_pricing->fixed_cost,
+                    'total' => $estimate->event_pricing->total,
                 ],
-                "general"=>[
-                    "num_guests"=>$estimate->guests_amount,
+                "general" => [
+                    "num_guests" => $estimate->guests_amount,
                 ]
             ],
         ]);
     }
-    public function group_estimates_by_person($estimates){
+    public function group_estimates_by_person($estimates)
+    {
         $groupMap = [];
         $groupedEstimates = [];
 
@@ -1498,5 +1593,4 @@ class EstimateController extends Controller
 
         return $groupedEstimates;
     }
-    
 }
