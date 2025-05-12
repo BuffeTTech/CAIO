@@ -82,3 +82,5 @@ Route::post('/address', [ClientController::class, 'store_address'])->name('addre
 Route::get('/client', [ClientController::class, 'index'])->name('client.index');
 Route::get('/client/{client_id}', [ClientController::class, 'show'])->name('client.show');
 Route::get('/client/create', [ClientController::class, 'create'])->name('client.create');
+
+require __DIR__.'/auth.php';
