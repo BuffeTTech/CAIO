@@ -48,6 +48,11 @@ Route::delete('/event/{event_id}/item/{item_id}/matherial/{matherial_id}', [Even
 Route::get('/all_estimates', [EstimateController::class, 'index'])->name('all_estimates.index');
 Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])->name('all_estimates.show');
 Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
+Route::get('/all_estimates/{estimate_id}/edit', [EstimateController::class, 'edit'])->name('all_estimates.edit');
+Route::get('/all_estimates/{estimate_id}/edit/search_items', [EstimateController::class, 'search_items'])->name('all_estimates.search_items');
+Route::post('/all_estimates/{estimate_id}/edit/update', [EstimateController::class, 'update'])->name('all_estimates.update');
+Route::post('/all_estimates/store_item_to_menu_event', [EstimateController::class, 'store_item_to_menu_event'])->name('all_estimates.store_item_to_menu_event');
+Route::delete('/all_estimates/delete_item_from_menu_event', [EstimateController::class, 'delete_item_from_menu_event'])->name('all_estimates.delete_item_from_menu_event');
 
 Route::get('/multiple_estimates', [EstimateController::class, 'create_multiple_estimates'])->name('multiple_estimates.create');
 Route::post('/multiple_estimates', [EstimateController::class, 'store_multiple_estimates'])->name('multiple_estimates.store');
@@ -55,6 +60,7 @@ Route::post('/multiple_estimates_menus', [EstimateController::class, 'multiple_e
 Route::post('/multiple_estimates_menus', [EstimateController::class, 'multiple_estimates_menus'])->name('multiple_estimates_menus.index');
 
 Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateController::class, 'close_estimate'])->name('all_estimates.close_estimate');
+
 
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
 Route::patch('/estimate/client', [EstimateController::class, 'add_client_session'])->name('estimate.add_client_session');
