@@ -285,6 +285,66 @@ class EstimateController extends Controller
     
         return response()->json($filteredItems);
     }
+
+    public function update(Request $request){
+        $estimate = $this->event->where('id',$request->estimate_id)
+        ->with('menu')
+        ->with('client')
+        ->with('address')
+        ->with('menu_event.items.ingredients.ingredient')
+        ->with('menu_event.items.matherials.matherial')
+        ->with('menu_event.items.item')
+        ->with("event_pricing")
+        ->get()
+        ->first();
+
+        $menu_event = $this->menu_event->where("event_id",$estimate->id)
+        ->get()
+        ->first();
+
+        if($request->changedItems['itemsToInsert']){
+            foreach($request->changedItems['itemsToInsert'] as $item){
+                $menu_event_has_item = MenuEventHasItem::create([
+                    'menu_event_id' => $menu_event->id,
+                    'item_id' => $item['id'],
+                    'cost'=> $item['cost'],
+                    'consumed_per_client'=>$item["consumed_per_client"],
+                    'unit'=>$item["unit"]
+                ]);
+                EventItemsFlow::create([
+                    'item_id' =>$item["id"],
+                    'event_id' =>$estimate->id,
+                    "status"=> ItemFlowType::INSERTED->name,
+                ]);             
+            }
+        }
+
+        if($request->changedItems['itemsToRemove']){
+            foreach($request->changedItems['itemsToRemove'] as $item){
+                $menu_event_has_item = $this->menu_event_has_item
+                ->where('item_id',$item['id'])
+                ->delete();
+                EventItemsFlow::create([
+                    'item_id' =>$item["id"],
+                    'event_id' =>$estimate->id,
+                    "status"=> ItemFlowType::REMOVED->name,
+                ]);           
+            }
+        }
+        $pricing = $request->estimate_pricing;
+        $estimate_pricing = $this->event_pricing->where('event_id',$estimate->id)->update([
+            "event_id" => $estimate->id,
+            "profit" =>$pricing["profit"],
+            "agency" =>$pricing["agency"],
+            "data_cost" =>$pricing["data_cost"],
+            "fixed_cost"=> 0,
+            "total"=>$pricing["total"]
+        ]);
+
+
+        return response()->json(["data"=>"Orçamento Atualizado com Sucesso!"]);
+    }
+
     public function create_session(Request $request) {
         $id = $request->user_id;
         if(!$id) {
