@@ -448,7 +448,7 @@ class EstimateController extends Controller
             "profit" => $pricing["profit"],
             "agency" => $pricing["agency"],
             "data_cost" => $pricing["data_cost"],
-            "fixed_cost" => 0,
+            "fixed_cost" => $pricing["fixed_cost"],
             "total" => $pricing["total"]
         ]);
 
