@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\IngredientCategory;
+use App\Enums\IngredientSourceType;
 use App\Enums\UnitEnum;
 use App\Models\Menu\Ingredient;
 use App\Models\Menu\ItemHasIngredient;
@@ -106,6 +107,29 @@ class IngredientSeeder extends Seeder
             0.225,
             0.250
         ];
+        $sourceTypeArray = [
+            IngredientSourceType::MARKET->name,
+            IngredientSourceType::SUPPLIER->name,
+
+        ];
+
+        $fornecedores = [
+            "Atacadão Central",
+            "Distribuidora Brasil",
+            "Fornecedora Global",
+            "Comercial Silva & Cia",
+            "Mega Atacado",
+            "Distribuidora União",
+            "Atacado dos Campos",
+            "Central de Suprimentos",
+            "Grupo ForneceMais",
+            "Distribuidora Alfa",
+            "Super Atacado SP",
+            "Comercial Nova Era",
+            "Rede de Fornecimento RJ"
+        ];
+
+
         $batchInsertItems = [];
         $batchInsertRelations = [];
 
@@ -115,6 +139,8 @@ class IngredientSeeder extends Seeder
                     $batchInsertItems[] = [
                         "name" => $ingredient,
                         "category" => $category,
+                        "source_type"=> $sourceTypeArray[random_int(0,count($sourceTypeArray) - 1)],
+                        "ingredient_source"=> $fornecedores[random_int(0,count($fornecedores) - 1)],
                         "unit" => $key,
                         "quantity" => in_array($unit, ["kg", "liters"]) ? random_int(1, 10) : random_int(1, 15),
                         "observation" => "",

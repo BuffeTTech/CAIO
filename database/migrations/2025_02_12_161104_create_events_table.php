@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('address_id')->onDelete('cascade');
             $table->enum('type', array_column(EventType::cases(),'name'));
             $table->integer('guests_amount');
+            $table->string('observation')->nullable();
             // $table->integer('staff_amount');
             // $table->float('staff_value');
             $table->date('date'); 

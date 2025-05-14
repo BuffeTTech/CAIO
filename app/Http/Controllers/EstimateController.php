@@ -132,12 +132,18 @@ class EstimateController extends Controller
 
     public function store_multiple_estimates(Request $request)
     {
-        $menusSlugs = $request->menus;
         $profits = $request->menuProfits;
         $client = $this->client->where("id", $request->client_id)->with("address")
-            ->get()
-            ->first();
+        ->get()
+        ->first();
 
+        if (!$client->address_id) {
+            return response()->json([
+                'message' => 'Cliente sem Endereço Cadastrado'
+            ], 400);
+        }
+
+        $menusSlugs = $request->menus;
         $date = $request->estimateDate;
         $date = substr($date, 0, -14);
 
@@ -409,6 +415,11 @@ class EstimateController extends Controller
             ->get()
             ->first();
 
+        if($request->observation)
+            $estimate->update([
+                "observation"=>$request->observation
+            ]);
+
         $menu_event = $this->menu_event->where("event_id", $estimate->id)
             ->get()
             ->first();
@@ -422,7 +433,13 @@ class EstimateController extends Controller
                     'consumed_per_client' => $item["consumed_per_client"],
                     'unit' => $item["unit"]
                 ]);
-                EventItemsFlow::create([
+
+                if (! Item::where('id', $item['id'])->exists()) {
+                // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                continue;
+                }
+
+                $flowAddItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::INSERTED->name,
@@ -435,7 +452,13 @@ class EstimateController extends Controller
                 $menu_event_has_item = $this->menu_event_has_item
                     ->where('item_id', $item['id'])
                     ->delete();
-                EventItemsFlow::create([
+
+                if (! Item::where('id', $item['id'])->exists()) {
+                // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                continue;
+                }
+                
+                $flowRemovedItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::REMOVED->name,
