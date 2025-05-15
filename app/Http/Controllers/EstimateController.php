@@ -134,8 +134,8 @@ class EstimateController extends Controller
     {
         $profits = $request->menuProfits;
         $client = $this->client->where("id", $request->client_id)->with("address")
-        ->get()
-        ->first();
+            ->get()
+            ->first();
 
         if (!$client->address_id) {
             return response()->json([
@@ -415,9 +415,9 @@ class EstimateController extends Controller
             ->get()
             ->first();
 
-        if($request->observation)
+        if ($request->observation)
             $estimate->update([
-                "observation"=>$request->observation
+                "observation" => $request->observation
             ]);
 
         $menu_event = $this->menu_event->where("event_id", $estimate->id)
@@ -435,8 +435,8 @@ class EstimateController extends Controller
                 ]);
 
                 if (! Item::where('id', $item['id'])->exists()) {
-                // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
-                continue;
+                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    continue;
                 }
 
                 $flowAddItem = EventItemsFlow::create([
@@ -454,10 +454,10 @@ class EstimateController extends Controller
                     ->delete();
 
                 if (! Item::where('id', $item['id'])->exists()) {
-                // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
-                continue;
+                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    continue;
                 }
-                
+
                 $flowRemovedItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
                     'event_id' => $estimate->id,
@@ -1386,8 +1386,8 @@ class EstimateController extends Controller
             'event_id' => $event->id,
             'profit' => $prices['profit'],
             'agency' => $prices['agency'],
-            "staff_amount" =>$prices['staff_amount'],
-            "staff_value" =>$prices['staff_value'],
+            "staff_amount" => $prices['staff_amount'],
+            "staff_value" => $prices['staff_value'],
             'data_cost' => $prices['data_cost'],
             'fixed_cost' => $fixed_cost,
             'total' => $total,
@@ -1417,49 +1417,28 @@ class EstimateController extends Controller
         }
 
         $estimates = $this->event
-        ->where('type',EventType::OPEN_ESTIMATE->name)
-        ->get();
-
-        $estimates= $this->group_estimates_by_person($estimates);
+            ->where('client_id', $estimate->client_id)
+            ->where('address_id', $estimate->address_id)
+            ->where('id', '!=', $estimate->id)
+            ->where('date', $estimate->date)
+            ->where('time', $estimate->time)
+            ->where('guests_amount', $estimate->guests_amount)
+            ->where('type', EventType::OPEN_ESTIMATE->name)
+            ->get();
         
-        foreach($estimates as $groupedEstimates){
-            $found = false;
-            for($i=0; $i<count($groupedEstimates['items']) - 1; $i++){
-                if($groupedEstimates['items'][$i]->id == $estimate->id){
-                    $found = true;
-                    $estimate = $estimate->update([
-                        "type" => EventType::CLOSED_ESTIMATE->name
-                    ]);
-                    unset($groupedEstimates['items'][$i]);
-                    $j = $i;
-                    $i = 0;
-
-                    for($j; $j < count($groupedEstimates['items']) - 2 ; $j++){
-                        $groupedEstimates['items'][$j] = $groupedEstimates['items'][$j + 1];
-                    }
-                }
-                if($found){
-                    $estimateToDelete = $this->event
-                    ->where('id',$groupedEstimates['items'][$i]->id)
-                    ->delete();
-                }
-            }
-            if($found)
-            break;
-    }
-    // return response()->json($estimate);
-    
-
-
-
-
-
-
+        $estimate->update([
+            "type" => EventType::CLOSED_ESTIMATE->name
+        ]);
+        foreach ($estimates as $groupedEstimates) {
+            // $groupedEstimates->update([
+            //     "type" => EventType::CLOSED_ESTIMATE->name
+            // ]);
+            $groupedEstimates->delete();
+        }
 
         return response()->json([
             "message" => "Orçamento Fechado"
         ]);
-        // return redirect()->route("all_estimates.index");
     }
 
     public function change_item_consumed_per_client(Request $request)
@@ -1625,8 +1604,8 @@ class EstimateController extends Controller
                     'data_cost' => $estimate->event_pricing->data_cost,
                     'fixed_cost' => $estimate->event_pricing->fixed_cost,
                     'total' => $estimate->event_pricing->total,
-                    'staff_amount'=>$estimate->event_pricing->staff_amount,
-                    'staff_value'=>$estimate->event_pricing->staff_value
+                    'staff_amount' => $estimate->event_pricing->staff_amount,
+                    'staff_value' => $estimate->event_pricing->staff_value
 
                 ],
                 "general" => [
@@ -1650,7 +1629,7 @@ class EstimateController extends Controller
                     "guests_amount" => $estimate->guests_amount,
                     "date" => $estimate->date,
                     "items" => []
-                ]; 
+                ];
             }
             $index = $groupMap[$groupKey];
             $groupedEstimates[$index]['items'][] = $estimate;
