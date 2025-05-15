@@ -1381,11 +1381,13 @@ class EstimateController extends Controller
         $pre_total = $prices['cost'] + $prices['profit'];
 
         $total = ($pre_total * $prices['agency'] / 100) + $pre_total;
-
+        return response()->json($prices);
         $this->event_pricing->create([
             'event_id' => $event->id,
             'profit' => $prices['profit'],
             'agency' => $prices['agency'],
+            "staff_amount" =>$prices['staff_amount'],
+            "staff_value" =>$prices['staff_value'],
             'data_cost' => $prices['data_cost'],
             'fixed_cost' => $fixed_cost,
             'total' => $total,
@@ -1413,9 +1415,47 @@ class EstimateController extends Controller
         if (!$estimate) {
             return response()->json(["data" => "Invalid event id"], 404);
         }
-        $estimate = $estimate->update([
-            "type" => EventType::CLOSED_ESTIMATE->name
-        ]);
+
+        $estimates = $this->event
+        ->where('type',EventType::OPEN_ESTIMATE->name)
+        ->get();
+
+        $estimates= $this->group_estimates_by_person($estimates);
+        
+        foreach($estimates as $groupedEstimates){
+            $found = false;
+            for($i=0; $i<count($groupedEstimates['items']) - 1; $i++){
+                if($groupedEstimates['items'][$i]->id == $estimate->id){
+                    $found = true;
+                    $estimate = $estimate->update([
+                        "type" => EventType::CLOSED_ESTIMATE->name
+                    ]);
+                    unset($groupedEstimates['items'][$i]);
+                    $j = $i;
+                    $i = 0;
+
+                    for($j; $j < count($groupedEstimates['items']) - 2 ; $j++){
+                        $groupedEstimates['items'][$j] = $groupedEstimates['items'][$j + 1];
+                    }
+                }
+                if($found){
+                    $estimateToDelete = $this->event
+                    ->where('id',$groupedEstimates['items'][$i]->id)
+                    ->delete();
+                }
+            }
+            if($found)
+            break;
+    }
+    // return response()->json($estimate);
+    
+
+
+
+
+
+
+
         return response()->json([
             "message" => "Orçamento Fechado"
         ]);
@@ -1585,6 +1625,9 @@ class EstimateController extends Controller
                     'data_cost' => $estimate->event_pricing->data_cost,
                     'fixed_cost' => $estimate->event_pricing->fixed_cost,
                     'total' => $estimate->event_pricing->total,
+                    'staff_amount'=>$estimate->event_pricing->staff_amount,
+                    'staff_value'=>$estimate->event_pricing->staff_value
+
                 ],
                 "general" => [
                     "num_guests" => $estimate->guests_amount,
@@ -1607,7 +1650,7 @@ class EstimateController extends Controller
                     "guests_amount" => $estimate->guests_amount,
                     "date" => $estimate->date,
                     "items" => []
-                ];
+                ]; 
             }
             $index = $groupMap[$groupKey];
             $groupedEstimates[$index]['items'][] = $estimate;
