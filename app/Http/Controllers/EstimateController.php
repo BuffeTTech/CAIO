@@ -132,12 +132,18 @@ class EstimateController extends Controller
 
     public function store_multiple_estimates(Request $request)
     {
-        $menusSlugs = $request->menus;
         $profits = $request->menuProfits;
         $client = $this->client->where("id", $request->client_id)->with("address")
             ->get()
             ->first();
 
+        if (!$client->address_id) {
+            return response()->json([
+                'message' => 'Cliente sem Endereço Cadastrado'
+            ], 400);
+        }
+
+        $menusSlugs = $request->menus;
         $date = $request->estimateDate;
         $date = substr($date, 0, -14);
 
@@ -409,6 +415,11 @@ class EstimateController extends Controller
             ->get()
             ->first();
 
+        if ($request->observation)
+            $estimate->update([
+                "observation" => $request->observation
+            ]);
+
         $menu_event = $this->menu_event->where("event_id", $estimate->id)
             ->get()
             ->first();
@@ -422,7 +433,13 @@ class EstimateController extends Controller
                     'consumed_per_client' => $item["consumed_per_client"],
                     'unit' => $item["unit"]
                 ]);
-                EventItemsFlow::create([
+
+                if (! Item::where('id', $item['id'])->exists()) {
+                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    continue;
+                }
+
+                $flowAddItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::INSERTED->name,
@@ -435,7 +452,13 @@ class EstimateController extends Controller
                 $menu_event_has_item = $this->menu_event_has_item
                     ->where('item_id', $item['id'])
                     ->delete();
-                EventItemsFlow::create([
+
+                if (! Item::where('id', $item['id'])->exists()) {
+                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    continue;
+                }
+
+                $flowRemovedItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::REMOVED->name,
@@ -1358,11 +1381,13 @@ class EstimateController extends Controller
         $pre_total = $prices['cost'] + $prices['profit'];
 
         $total = ($pre_total * $prices['agency'] / 100) + $pre_total;
-
+        return response()->json($prices);
         $this->event_pricing->create([
             'event_id' => $event->id,
             'profit' => $prices['profit'],
             'agency' => $prices['agency'],
+            "staff_amount" => $prices['staff_amount'],
+            "staff_value" => $prices['staff_value'],
             'data_cost' => $prices['data_cost'],
             'fixed_cost' => $fixed_cost,
             'total' => $total,
@@ -1390,13 +1415,30 @@ class EstimateController extends Controller
         if (!$estimate) {
             return response()->json(["data" => "Invalid event id"], 404);
         }
-        $estimate = $estimate->update([
+
+        $estimates = $this->event
+            ->where('client_id', $estimate->client_id)
+            ->where('address_id', $estimate->address_id)
+            ->where('id', '!=', $estimate->id)
+            ->where('date', $estimate->date)
+            ->where('time', $estimate->time)
+            ->where('guests_amount', $estimate->guests_amount)
+            ->where('type', EventType::OPEN_ESTIMATE->name)
+            ->get();
+        
+        $estimate->update([
             "type" => EventType::CLOSED_ESTIMATE->name
         ]);
+        foreach ($estimates as $groupedEstimates) {
+            // $groupedEstimates->update([
+            //     "type" => EventType::CLOSED_ESTIMATE->name
+            // ]);
+            $groupedEstimates->delete();
+        }
+
         return response()->json([
             "message" => "Orçamento Fechado"
         ]);
-        // return redirect()->route("all_estimates.index");
     }
 
     public function change_item_consumed_per_client(Request $request)
@@ -1562,6 +1604,9 @@ class EstimateController extends Controller
                     'data_cost' => $estimate->event_pricing->data_cost,
                     'fixed_cost' => $estimate->event_pricing->fixed_cost,
                     'total' => $estimate->event_pricing->total,
+                    'staff_amount' => $estimate->event_pricing->staff_amount,
+                    'staff_value' => $estimate->event_pricing->staff_value
+
                 ],
                 "general" => [
                     "num_guests" => $estimate->guests_amount,

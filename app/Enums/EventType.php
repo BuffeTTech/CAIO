@@ -9,4 +9,5 @@ enum EventType: string {
     case CLOSED_ESTIMATE = "ORÇAMENTO FECHADO";
     case OPEN_ESTIMATE = "ORÇAMENTO EM ABERTO";
     case CLOSED_EVENT = "EVENTO ENCERRADO";
+    // case CANCEL_ESTIMATE = "ORÇAMENTO CANCELADO";
 }
