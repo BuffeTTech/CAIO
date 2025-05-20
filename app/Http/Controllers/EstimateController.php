@@ -24,6 +24,7 @@ use App\Models\MenuEvent\MenuEventItemHasIngredient;
 use App\Models\MenuEvent\MenuEventItemHasMatherial;
 use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
+use App\Models\Prices;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 use function PHPUnit\Framework\isArray;
+use function PHPUnit\Framework\isNull;
 
 class EstimateController extends Controller
 {
@@ -56,6 +58,7 @@ class EstimateController extends Controller
         protected ItemHasIngredient $item_has_ingredient,
         protected EventPricing $event_pricing,
         protected EventItemsFlow $event_items_flow,
+        protected Prices $prices,
 
         protected Client $client,
         protected Address $address,
@@ -513,11 +516,16 @@ class EstimateController extends Controller
                     'message' => $e->getMessage()
                 ], 400);
             }
+
+
+            $prices = $this->get_base_prices();
+
             Redis::hset($key, "menu", $menu->slug);
             Redis::hset($key, "guests", $this->minGuests);
             Redis::hset($key, "items", json_encode([]));
             Redis::hset($key, "client", null);
             Redis::hset($key, "costs", json_encode($costs));
+            Redis::hset($key, "prices", json_encode($prices));
             // Redis::hset($key, "items", json_encode([]));
             Redis::expire($key, $this->expiresAt);
 
@@ -540,6 +548,7 @@ class EstimateController extends Controller
                 'initial_guests' => $data['guests'],
                 'min_guests' => $this->minGuests,
                 'client' => json_decode($data['client'], true),
+                "prices" => json_decode($data['prices'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -965,6 +974,35 @@ class EstimateController extends Controller
                 // $merged = $this->mount_costs($menu, $quantity);
 
                 Redis::hset($key, 'guests', $quantity);
+
+                $data = array_filter($data, function ($cost) use ($quantity) {
+                    return $cost['type'] != MenuInformationType::EMPLOYEES->name;
+                });
+
+                $role_quantity = $this->menu_has_role_quantity
+                    ->where('menu_id', $menu->id)
+                    ->whereHas('quantity', function ($query) use ($quantity) {
+                        $query->where('guests_init', '<=', $quantity)
+                            ->where('guests_end', '>=', $quantity);
+                    })
+                    ->get();
+                if (count($role_quantity) == 0) {
+                    throw new \Exception('Invalid number of guests');
+                }
+                $role_information = collect($role_quantity->map(function ($information) {
+                    return [
+                        'id' => $information->quantity->id, // id do relacionamento
+                        'name' => $information->quantity->role->name,
+                        'unit_price' => $information->quantity->role->price,
+                        'quantity' => $information->quantity->quantity,
+                        'created_at' => $information->quantity->created_at,
+                        'updated_at' => $information->quantity->updated_at,
+                        'type' => MenuInformationType::EMPLOYEES->name
+                    ];
+                }));
+                $merged = collect($role_information)->merge($data);
+                Redis::hset($key, 'costs', json_encode($merged));
+                return response()->json($merged);
             }
         }
 
@@ -1127,6 +1165,7 @@ class EstimateController extends Controller
                 'initial_guests' => $data['guests'],
                 'min_guests' => $this->minGuests,
                 'client' => json_decode($data['client'], true),
+                "prices" => json_decode($data['prices'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -1378,10 +1417,10 @@ class EstimateController extends Controller
         }
 
         $fixed_cost = $prices['cost'] - $prices['data_cost'];
-        $pre_total = $prices['cost'] + $prices['profit'];
+        $staff = $prices['staff_amount'] * $prices['staff_value'];
+        $pre_total = $prices['cost'] + $prices['profit'] + $staff;
 
         $total = ($pre_total * $prices['agency'] / 100) + $pre_total;
-        return response()->json($prices);
         $this->event_pricing->create([
             'event_id' => $event->id,
             'profit' => $prices['profit'],
@@ -1425,7 +1464,7 @@ class EstimateController extends Controller
             ->where('guests_amount', $estimate->guests_amount)
             ->where('type', EventType::OPEN_ESTIMATE->name)
             ->get();
-        
+
         $estimate->update([
             "type" => EventType::CLOSED_ESTIMATE->name
         ]);
@@ -1637,5 +1676,75 @@ class EstimateController extends Controller
 
 
         return $groupedEstimates;
+    }
+
+    public function change_prices(Request $request)
+    {
+        $user_id = $request->user_id;
+        if (!$user_id) {
+            return response()->json([
+                'message' => 'Please provide an user_id'
+            ], 400);
+        }
+        $type = $request->type;
+        if (!$type) {
+            return response()->json([
+                'message' => 'Please provide a type'
+            ], 400);
+        }
+        if (!in_array($type, ['profit', 'agency', 'staff_amount', 'staff_value'])) {
+            return response()->json([
+                'message' => 'Invalid type'
+            ], 400);
+        }
+        $value = $request->value;
+        if ($value < 0 || is_null($value)) {
+            return response()->json([
+                'message' => 'Please provide a value'
+            ], 400);
+        }
+        if (!is_numeric($value) || $value < 0) {
+            return response()->json([
+                'message' => 'Invalid value'
+            ], 422);
+        }
+        $key = 'session:' . $user_id;
+        $existsInRedis = Redis::exists($key);
+        if (!$existsInRedis) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 422);
+        }
+        $data = Redis::hget($key, 'prices');
+        $data = json_decode($data, true);
+        if (!is_array($data)) {
+            return response()->json([
+                'message' => 'Invalid prices data'
+            ], 400);
+        }
+        if (!isset($data[$type])) {
+            return response()->json([
+                'message' => 'Invalid type'
+            ], 400);
+        }
+        $data[$type] = $value; // Atualiza o valor
+        Redis::hset($key, 'prices', json_encode($data));
+        return response()->json([
+            'message' => 'Price modified successfully',
+        ]);
+    }
+
+    private function get_base_prices()
+    {
+        $base_prices = $this->prices->first();
+        if (!$base_prices) {
+            $base_prices = $this->prices->create([
+                'profit' => 0,
+                'agency' => 0,
+                'staff_amount' => 0,
+                'staff_value' => 0,
+            ]);
+        }
+        return $base_prices;
     }
 }

@@ -63,6 +63,8 @@ Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateControlle
 
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
 Route::patch('/estimate/client', [EstimateController::class, 'add_client_session'])->name('estimate.add_client_session');
+Route::patch('/estimate/prices', [EstimateController::class, 'change_prices'])->name('estimate.change_prices');
+// Route::patch('/estimate/guests', [EstimateController::class, 'change_num_guests'])->name('estimate.change_num_guests');
 Route::get('/estimate/add-item',  [EstimateController::class, 'add_item_session'])->name('estimate.add_item_session');
 Route::get('/estimate/menu/{menu_slug}/costs',  [EstimateController::class, 'get_menu_costs'])->name('estimate.get_menu_costs');
 Route::patch('/estimate/change-guests',  [EstimateController::class, 'change_guests'])->name('estimate.change_guests');
