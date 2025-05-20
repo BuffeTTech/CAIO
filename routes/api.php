@@ -50,7 +50,7 @@ Route::get( '/all_estimates/{estimate_id}', [EstimateController::class, 'show'])
 Route::get( '/all_estimates/{estimate_id}/items', [EstimateController::class, 'items'])->name('all_estimates.items');
 Route::get('/all_estimates/{estimate_id}/edit', [EstimateController::class, 'edit'])->name('all_estimates.edit');
 Route::get('/all_estimates/{estimate_id}/edit/search_items', [EstimateController::class, 'search_items'])->name('all_estimates.search_items');
-Route::post('/all_estimates/{estimate_id}/edit/update', [EstimateController::class, 'update'])->name('all_estimates.update');
+Route::put('/all_estimates/{estimate_id}/edit', [EstimateController::class, 'update'])->name('all_estimates.update');
 Route::post('/all_estimates/store_item_to_menu_event', [EstimateController::class, 'store_item_to_menu_event'])->name('all_estimates.store_item_to_menu_event');
 Route::delete('/all_estimates/delete_item_from_menu_event', [EstimateController::class, 'delete_item_from_menu_event'])->name('all_estimates.delete_item_from_menu_event');
 

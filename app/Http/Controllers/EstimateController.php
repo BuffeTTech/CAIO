@@ -82,8 +82,8 @@ class EstimateController extends Controller
             ->with('menu')
             ->with('client')
             ->with('address')
-            ->with('menu_event.items.ingredients.ingredient')
-            ->with('menu_event.items.matherials.matherial')
+            // ->with('menu_event.items.ingredients.ingredient')
+            // ->with('menu_event.items.matherials.matherial')
             ->with('menu_event.items.item')
             ->with('event_pricing')
             // ->with('menu_event')
@@ -429,18 +429,47 @@ class EstimateController extends Controller
 
         if ($request->changedItems['itemsToInsert']) {
             foreach ($request->changedItems['itemsToInsert'] as $item) {
-                $menu_event_has_item = MenuEventHasItem::create([
-                    'menu_event_id' => $menu_event->id,
-                    'item_id' => $item['id'],
-                    'cost' => $item['cost'],
-                    'consumed_per_client' => $item["consumed_per_client"],
-                    'unit' => $item["unit"]
-                ]);
-
                 if (! Item::where('id', $item['id'])->exists()) {
                     // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
                     continue;
                 }
+
+                $menu_event_has_item = MenuEventHasItem::firstOrCreate([
+                    'menu_event_id' => $menu_event->id,
+                    'item_id' => $item['id'],
+                ], [
+                    'cost' => $item['cost'],
+                    'consumed_per_client' => $item["consumed_per_client"],
+                    'unit' => $item["unit"]
+                ]);
+                $collection_item = $this->items->where('id', $item['id'])
+                    ->with("ingredients.ingredient")
+                    ->with("matherials.matherial")
+                    ->get()
+                    ->first();
+
+                if (!empty($collection_item['ingredients'])) {
+                    foreach ($collection_item['ingredients'] as $ingredient) {
+                        MenuEventItemHasIngredient::create([
+                            'menu_event_has_items_id' => $menu_event_has_item->id,
+                            'ingredient_id' => $ingredient['ingredient_id'],
+                            'proportion_per_item' => $ingredient['proportion_per_item'],
+                            'unit' => $ingredient['unit'],
+                        ]);
+                    }
+                }
+
+                if (!empty($collection_item['matherials'])) {
+                    foreach ($collection_item['matherials'] as $matherial) {
+                        MenuEventItemHasMatherial::create([
+                            'menu_event_has_items_id' => $menu_event_has_item->id,
+                            'matherial_id' => $matherial['matherial_id'],
+                        ]);
+                    }
+                }
+                $flow_exists = EventItemsFlow::where('event_id', $estimate->id)
+                    ->where('item_id', $item['id'])
+                    ->delete();
 
                 $flowAddItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
@@ -452,22 +481,33 @@ class EstimateController extends Controller
 
         if ($request->changedItems['itemsToRemove']) {
             foreach ($request->changedItems['itemsToRemove'] as $item) {
+                // if (! Item::where('id', $item->item['id'])->exists()) {
+                //     // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                //     continue;
+                // }
                 $menu_event_has_item = $this->menu_event_has_item
-                    ->where('item_id', $item['id'])
-                    ->delete();
-
-                if (! Item::where('id', $item['id'])->exists()) {
-                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    ->where('menu_event_id', $menu_event->id)
+                    ->where('item_id', $item['item_id'])
+                    ->get()
+                    ->first();
+                if (!$menu_event_has_item) {
                     continue;
                 }
+                $menu_event_has_item = $this->menu_event_has_item
+                    ->where('item_id', $item['item_id'])
+                    ->where('menu_event_id', $menu_event->id)
+                    ->delete();
 
                 $flowRemovedItem = EventItemsFlow::create([
-                    'item_id' => $item["id"],
+                    'item_id' => $item['item_id'],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::REMOVED->name,
                 ]);
             }
         }
+
+        // TODO: recalcular os custos e itens
+
         $pricing = $request->estimate_pricing;
         $estimate_pricing = $this->event_pricing->where('event_id', $estimate->id)->update([
             "event_id" => $estimate->id,
