@@ -26,6 +26,7 @@ use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
 use App\Models\Prices;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redis;
@@ -469,6 +470,10 @@ class EstimateController extends Controller
                 }
                 $flow_exists = EventItemsFlow::where('event_id', $estimate->id)
                     ->where('item_id', $item['id'])
+                    ->where(function (Builder $query) {
+                        return $query->where('status', ItemFlowType::INSERTED->name)
+                            ->orWhere('status', ItemFlowType::REMOVED->name);
+                    })                    
                     ->delete();
 
                 $flowAddItem = EventItemsFlow::create([
