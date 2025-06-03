@@ -473,7 +473,7 @@ class EstimateController extends Controller
                     ->where(function (Builder $query) {
                         return $query->where('status', ItemFlowType::INSERTED->name)
                             ->orWhere('status', ItemFlowType::REMOVED->name);
-                    })                    
+                    })
                     ->delete();
 
                 $flowAddItem = EventItemsFlow::create([
@@ -512,13 +512,28 @@ class EstimateController extends Controller
         }
 
         // TODO: recalcular os custos e itens
+        $items = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->with('item')
+            ->get();
+        
+        $numGuests = $estimate->guests_amount != $request->numGuests ? $request->numGuests : $estimate->guests_amount;
+        $data_cost = 0;
+        foreach($items as $item) {
+            $data_cost += $item->item->cost * $item->item->consumed_per_client * $numGuests;
+        }
+        $estimate->update([
+            "guests_amount" => $numGuests,
+            "date" => $request->estimateDate,
+            "time" => $request->estimateTime
+        ]);
 
         $pricing = $request->estimate_pricing;
         $estimate_pricing = $this->event_pricing->where('event_id', $estimate->id)->update([
             "event_id" => $estimate->id,
             "profit" => $pricing["profit"],
             "agency" => $pricing["agency"],
-            "data_cost" => $pricing["data_cost"],
+            "data_cost" => $data_cost,
             "fixed_cost" => $pricing["fixed_cost"],
             "total" => $pricing["total"]
         ]);
