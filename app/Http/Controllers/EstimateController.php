@@ -24,7 +24,9 @@ use App\Models\MenuEvent\MenuEventItemHasIngredient;
 use App\Models\MenuEvent\MenuEventItemHasMatherial;
 use App\Models\MenuHasRoleQuantity;
 use App\Models\MenuInformation;
+use App\Models\Prices;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Redis;
@@ -32,6 +34,7 @@ use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 use function PHPUnit\Framework\isArray;
+use function PHPUnit\Framework\isNull;
 
 class EstimateController extends Controller
 {
@@ -56,6 +59,7 @@ class EstimateController extends Controller
         protected ItemHasIngredient $item_has_ingredient,
         protected EventPricing $event_pricing,
         protected EventItemsFlow $event_items_flow,
+        protected Prices $prices,
 
         protected Client $client,
         protected Address $address,
@@ -79,8 +83,8 @@ class EstimateController extends Controller
             ->with('menu')
             ->with('client')
             ->with('address')
-            ->with('menu_event.items.ingredients.ingredient')
-            ->with('menu_event.items.matherials.matherial')
+            // ->with('menu_event.items.ingredients.ingredient')
+            // ->with('menu_event.items.matherials.matherial')
             ->with('menu_event.items.item')
             ->with('event_pricing')
             // ->with('menu_event')
@@ -426,18 +430,51 @@ class EstimateController extends Controller
 
         if ($request->changedItems['itemsToInsert']) {
             foreach ($request->changedItems['itemsToInsert'] as $item) {
-                $menu_event_has_item = MenuEventHasItem::create([
-                    'menu_event_id' => $menu_event->id,
-                    'item_id' => $item['id'],
-                    'cost' => $item['cost'],
-                    'consumed_per_client' => $item["consumed_per_client"],
-                    'unit' => $item["unit"]
-                ]);
-
                 if (! Item::where('id', $item['id'])->exists()) {
                     // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
                     continue;
                 }
+
+                $menu_event_has_item = MenuEventHasItem::firstOrCreate([
+                    'menu_event_id' => $menu_event->id,
+                    'item_id' => $item['id'],
+                ], [
+                    'cost' => $item['cost'],
+                    'consumed_per_client' => $item["consumed_per_client"],
+                    'unit' => $item["unit"]
+                ]);
+                $collection_item = $this->items->where('id', $item['id'])
+                    ->with("ingredients.ingredient")
+                    ->with("matherials.matherial")
+                    ->get()
+                    ->first();
+
+                if (!empty($collection_item['ingredients'])) {
+                    foreach ($collection_item['ingredients'] as $ingredient) {
+                        MenuEventItemHasIngredient::create([
+                            'menu_event_has_items_id' => $menu_event_has_item->id,
+                            'ingredient_id' => $ingredient['ingredient_id'],
+                            'proportion_per_item' => $ingredient['proportion_per_item'],
+                            'unit' => $ingredient['unit'],
+                        ]);
+                    }
+                }
+
+                if (!empty($collection_item['matherials'])) {
+                    foreach ($collection_item['matherials'] as $matherial) {
+                        MenuEventItemHasMatherial::create([
+                            'menu_event_has_items_id' => $menu_event_has_item->id,
+                            'matherial_id' => $matherial['matherial_id'],
+                        ]);
+                    }
+                }
+                $flow_exists = EventItemsFlow::where('event_id', $estimate->id)
+                    ->where('item_id', $item['id'])
+                    ->where(function (Builder $query) {
+                        return $query->where('status', ItemFlowType::INSERTED->name)
+                            ->orWhere('status', ItemFlowType::REMOVED->name);
+                    })
+                    ->delete();
 
                 $flowAddItem = EventItemsFlow::create([
                     'item_id' => $item["id"],
@@ -449,31 +486,102 @@ class EstimateController extends Controller
 
         if ($request->changedItems['itemsToRemove']) {
             foreach ($request->changedItems['itemsToRemove'] as $item) {
+                // if (! Item::where('id', $item->item['id'])->exists()) {
+                //     // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                //     continue;
+                // }
                 $menu_event_has_item = $this->menu_event_has_item
-                    ->where('item_id', $item['id'])
-                    ->delete();
-
-                if (! Item::where('id', $item['id'])->exists()) {
-                    // logue um warning, pule este fluxo, lance uma Exception customizada, etc.
+                    ->where('menu_event_id', $menu_event->id)
+                    ->where('item_id', $item['item_id'])
+                    ->get()
+                    ->first();
+                if (!$menu_event_has_item) {
                     continue;
                 }
+                $menu_event_has_item = $this->menu_event_has_item
+                    ->where('item_id', $item['item_id'])
+                    ->where('menu_event_id', $menu_event->id)
+                    ->delete();
 
                 $flowRemovedItem = EventItemsFlow::create([
-                    'item_id' => $item["id"],
+                    'item_id' => $item['item_id'],
                     'event_id' => $estimate->id,
                     "status" => ItemFlowType::REMOVED->name,
                 ]);
             }
         }
+
+        // TODO: recalcular os custos e itens
+        $items = $this->menu_event_has_item
+            ->where('menu_event_id', $menu_event->id)
+            ->with('item')
+            ->get();
+        
+        $numGuests = $estimate->guests_amount != $request->numGuests ? $request->numGuests : $estimate->guests_amount;
+        $data_cost = 0;
+        foreach($items as $item) {
+            $data_cost += $item->item->cost * $item->item->consumed_per_client * $numGuests;
+        }
+        $estimate->update([
+            "guests_amount" => $numGuests,
+            // "date" => $request->estimateDate,
+            // "time" => $request->estimateTime
+        ]);
+
         $pricing = $request->estimate_pricing;
         $estimate_pricing = $this->event_pricing->where('event_id', $estimate->id)->update([
             "event_id" => $estimate->id,
             "profit" => $pricing["profit"],
             "agency" => $pricing["agency"],
-            "data_cost" => $pricing["data_cost"],
+            "data_cost" => $data_cost,
             "fixed_cost" => $pricing["fixed_cost"],
             "total" => $pricing["total"]
         ]);
+
+        $costs = $request->costs;
+        // $employeeCost = [];
+        // $generalCost = [];
+        foreach($costs as $cost) {
+            if($cost['type'] != MenuInformationType::EMPLOYEES->name) {
+                // array_push($employeeCost, $cost);
+                $eventInformation = $this->event_information->where('id', $cost['id'])->first();
+
+
+                if ($eventInformation) {
+                    $eventInformation->update([
+                        'quantity' => $cost['quantity'],
+                        'unit_price' => $cost['unit_price'],
+                    ]);
+
+                    return response()->json($eventInformation);
+                } else {
+                    return response()->json($cost);
+                    // $this->event_information->create([
+                    //     'event_id' => $estimate->id,
+                    //     'menu_information_id' => $cost['base_id'],
+                    //     'quantity' => $cost['quantity'],
+                    //     'unit_price' => $cost['unit_price'],
+                    // ]);
+                }
+            } else {
+                // array_push($generalCost, $cost);
+                $eventRoleInformation = $this->event_role_information->where('id', $cost['id'])->first();
+
+                if ($eventRoleInformation) {
+                    $eventRoleInformation->update([
+                        'quantity' => $cost['quantity'],
+                        'unit_price' => $cost['unit_price'],
+                    ]);
+                } else {
+                    // $this->event_role_information->create([
+                    //     'event_id' => $estimate->id,
+                    //     'menu_has_role_quantities_id' => $cost['base_id'],
+                    //     'quantity' => $cost['quantity'],
+                    //     'unit_price' => $cost['unit_price'],
+                    // ]);
+                }
+            }
+        }
 
 
         return response()->json(["data" => "Orçamento Atualizado com Sucesso!"]);
@@ -513,11 +621,16 @@ class EstimateController extends Controller
                     'message' => $e->getMessage()
                 ], 400);
             }
+
+
+            $prices = $this->get_base_prices();
+
             Redis::hset($key, "menu", $menu->slug);
             Redis::hset($key, "guests", $this->minGuests);
             Redis::hset($key, "items", json_encode([]));
             Redis::hset($key, "client", null);
             Redis::hset($key, "costs", json_encode($costs));
+            Redis::hset($key, "prices", json_encode($prices));
             // Redis::hset($key, "items", json_encode([]));
             Redis::expire($key, $this->expiresAt);
 
@@ -540,6 +653,7 @@ class EstimateController extends Controller
                 'initial_guests' => $data['guests'],
                 'min_guests' => $this->minGuests,
                 'client' => json_decode($data['client'], true),
+                "prices" => json_decode($data['prices'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -965,6 +1079,35 @@ class EstimateController extends Controller
                 // $merged = $this->mount_costs($menu, $quantity);
 
                 Redis::hset($key, 'guests', $quantity);
+
+                $data = array_filter($data, function ($cost) use ($quantity) {
+                    return $cost['type'] != MenuInformationType::EMPLOYEES->name;
+                });
+
+                $role_quantity = $this->menu_has_role_quantity
+                    ->where('menu_id', $menu->id)
+                    ->whereHas('quantity', function ($query) use ($quantity) {
+                        $query->where('guests_init', '<=', $quantity)
+                            ->where('guests_end', '>=', $quantity);
+                    })
+                    ->get();
+                if (count($role_quantity) == 0) {
+                    throw new \Exception('Invalid number of guests');
+                }
+                $role_information = collect($role_quantity->map(function ($information) {
+                    return [
+                        'id' => $information->quantity->id, // id do relacionamento
+                        'name' => $information->quantity->role->name,
+                        'unit_price' => $information->quantity->role->price,
+                        'quantity' => $information->quantity->quantity,
+                        'created_at' => $information->quantity->created_at,
+                        'updated_at' => $information->quantity->updated_at,
+                        'type' => MenuInformationType::EMPLOYEES->name
+                    ];
+                }));
+                $merged = collect($role_information)->merge($data);
+                Redis::hset($key, 'costs', json_encode($merged));
+                return response()->json($merged);
             }
         }
 
@@ -1127,6 +1270,7 @@ class EstimateController extends Controller
                 'initial_guests' => $data['guests'],
                 'min_guests' => $this->minGuests,
                 'client' => json_decode($data['client'], true),
+                "prices" => json_decode($data['prices'], true),
                 // 'costs'=>json_decode($data['costs'], true),
             ],
         ]);
@@ -1378,10 +1522,10 @@ class EstimateController extends Controller
         }
 
         $fixed_cost = $prices['cost'] - $prices['data_cost'];
-        $pre_total = $prices['cost'] + $prices['profit'];
+        $staff = $prices['staff_amount'] * $prices['staff_value'];
+        $pre_total = $prices['cost'] + $prices['profit'] + $staff;
 
         $total = ($pre_total * $prices['agency'] / 100) + $pre_total;
-        return response()->json($prices);
         $this->event_pricing->create([
             'event_id' => $event->id,
             'profit' => $prices['profit'],
@@ -1425,7 +1569,7 @@ class EstimateController extends Controller
             ->where('guests_amount', $estimate->guests_amount)
             ->where('type', EventType::OPEN_ESTIMATE->name)
             ->get();
-        
+
         $estimate->update([
             "type" => EventType::CLOSED_ESTIMATE->name
         ]);
@@ -1571,7 +1715,8 @@ class EstimateController extends Controller
 
         $event_information = collect($event_information->map(function ($information) {
             return [
-                'id' => $information->menu_information->id, // id do relacionamento
+                'id' => $information->id, // id do relacionamento
+                'base_id' => $information->menu_information_id,
                 'name' => $information->menu_information->name,
                 'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
@@ -1580,9 +1725,11 @@ class EstimateController extends Controller
                 'type' => $information->menu_information->type
             ];
         }));
+
         $event_role_information = collect($event_role_information->map(function ($information) {
             return [
-                'id' => $information->menu_has_role_quantities->id, // id do relacionamento
+                'id' => $information->id, // id do relacionamento
+                'base_id' => $information->menu_has_role_quantities->id,
                 'name' => $information->menu_has_role_quantities->quantity->role->name,
                 'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
@@ -1638,4 +1785,100 @@ class EstimateController extends Controller
 
         return $groupedEstimates;
     }
+
+    public function change_prices(Request $request)
+    {
+        $user_id = $request->user_id;
+        if (!$user_id) {
+            return response()->json([
+                'message' => 'Please provide an user_id'
+            ], 400);
+        }
+        $type = $request->type;
+        if (!$type) {
+            return response()->json([
+                'message' => 'Please provide a type'
+            ], 400);
+        }
+        if (!in_array($type, ['profit', 'agency', 'staff_amount', 'staff_value'])) {
+            return response()->json([
+                'message' => 'Invalid type'
+            ], 400);
+        }
+        $value = $request->value;
+        if ($value < 0 || is_null($value)) {
+            return response()->json([
+                'message' => 'Please provide a value'
+            ], 400);
+        }
+        if (!is_numeric($value) || $value < 0) {
+            return response()->json([
+                'message' => 'Invalid value'
+            ], 422);
+        }
+        $key = 'session:' . $user_id;
+        $existsInRedis = Redis::exists($key);
+        if (!$existsInRedis) {
+            return response()->json([
+                'message' => 'Session not found'
+            ], 422);
+        }
+        $data = Redis::hget($key, 'prices');
+        $data = json_decode($data, true);
+        if (!is_array($data)) {
+            return response()->json([
+                'message' => 'Invalid prices data'
+            ], 400);
+        }
+        if (!isset($data[$type])) {
+            return response()->json([
+                'message' => 'Invalid type'
+            ], 400);
+        }
+        $data[$type] = $value; // Atualiza o valor
+        Redis::hset($key, 'prices', json_encode($data));
+        return response()->json([
+            'message' => 'Price modified successfully',
+        ]);
+    }
+
+    private function get_base_prices()
+    {
+        $base_prices = $this->prices->first();
+        if (!$base_prices) {
+            $base_prices = $this->prices->create([
+                'profit' => 0,
+                'agency' => 0,
+                'staff_amount' => 0,
+                'staff_value' => 0,
+            ]);
+        }
+        return $base_prices;
+    }
+
+    private function delete_estimate(Request $request)
+    {
+        $estimate_id = $request->estimateId;
+
+        $estimate = $this->event->where('id', $estimate_id)->get()->first();
+
+        if (!$estimate) {
+            return response()->json([
+                'message' => 'Orçamento não encontrado'
+            ], 404);
+        }
+
+        $deleted = $estimate->delete();
+
+        if (!$deleted) {
+                return response()->json([
+                    'message' => 'Erro ao deletar Orçamento'
+                ], 500);
+        }
+        
+        return response()->json([
+            'message' => 'Orçamento deletado com Sucesso!'
+        ]);
+    }
+
 }
