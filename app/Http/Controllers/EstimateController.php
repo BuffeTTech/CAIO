@@ -524,8 +524,8 @@ class EstimateController extends Controller
         }
         $estimate->update([
             "guests_amount" => $numGuests,
-            "date" => $request->estimateDate,
-            "time" => $request->estimateTime
+            // "date" => $request->estimateDate,
+            // "time" => $request->estimateTime
         ]);
 
         $pricing = $request->estimate_pricing;
@@ -537,6 +537,51 @@ class EstimateController extends Controller
             "fixed_cost" => $pricing["fixed_cost"],
             "total" => $pricing["total"]
         ]);
+
+        $costs = $request->costs;
+        // $employeeCost = [];
+        // $generalCost = [];
+        foreach($costs as $cost) {
+            if($cost['type'] != MenuInformationType::EMPLOYEES->name) {
+                // array_push($employeeCost, $cost);
+                $eventInformation = $this->event_information->where('id', $cost['id'])->first();
+
+
+                if ($eventInformation) {
+                    $eventInformation->update([
+                        'quantity' => $cost['quantity'],
+                        'unit_price' => $cost['unit_price'],
+                    ]);
+
+                    return response()->json($eventInformation);
+                } else {
+                    return response()->json($cost);
+                    // $this->event_information->create([
+                    //     'event_id' => $estimate->id,
+                    //     'menu_information_id' => $cost['base_id'],
+                    //     'quantity' => $cost['quantity'],
+                    //     'unit_price' => $cost['unit_price'],
+                    // ]);
+                }
+            } else {
+                // array_push($generalCost, $cost);
+                $eventRoleInformation = $this->event_role_information->where('id', $cost['id'])->first();
+
+                if ($eventRoleInformation) {
+                    $eventRoleInformation->update([
+                        'quantity' => $cost['quantity'],
+                        'unit_price' => $cost['unit_price'],
+                    ]);
+                } else {
+                    // $this->event_role_information->create([
+                    //     'event_id' => $estimate->id,
+                    //     'menu_has_role_quantities_id' => $cost['base_id'],
+                    //     'quantity' => $cost['quantity'],
+                    //     'unit_price' => $cost['unit_price'],
+                    // ]);
+                }
+            }
+        }
 
 
         return response()->json(["data" => "Orçamento Atualizado com Sucesso!"]);
@@ -1670,7 +1715,8 @@ class EstimateController extends Controller
 
         $event_information = collect($event_information->map(function ($information) {
             return [
-                'id' => $information->menu_information->id, // id do relacionamento
+                'id' => $information->id, // id do relacionamento
+                'base_id' => $information->menu_information_id,
                 'name' => $information->menu_information->name,
                 'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
@@ -1679,9 +1725,11 @@ class EstimateController extends Controller
                 'type' => $information->menu_information->type
             ];
         }));
+
         $event_role_information = collect($event_role_information->map(function ($information) {
             return [
-                'id' => $information->menu_has_role_quantities->id, // id do relacionamento
+                'id' => $information->id, // id do relacionamento
+                'base_id' => $information->menu_has_role_quantities->id,
                 'name' => $information->menu_has_role_quantities->quantity->role->name,
                 'unit_price' => $information->unit_price,
                 'quantity' => $information->quantity,
@@ -1807,4 +1855,30 @@ class EstimateController extends Controller
         }
         return $base_prices;
     }
+
+    private function delete_estimate(Request $request)
+    {
+        $estimate_id = $request->estimateId;
+
+        $estimate = $this->event->where('id', $estimate_id)->get()->first();
+
+        if (!$estimate) {
+            return response()->json([
+                'message' => 'Orçamento não encontrado'
+            ], 404);
+        }
+
+        $deleted = $estimate->delete();
+
+        if (!$deleted) {
+                return response()->json([
+                    'message' => 'Erro ao deletar Orçamento'
+                ], 500);
+        }
+        
+        return response()->json([
+            'message' => 'Orçamento deletado com Sucesso!'
+        ]);
+    }
+
 }

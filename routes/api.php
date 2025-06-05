@@ -59,6 +59,7 @@ Route::post('/multiple_estimates', [EstimateController::class, 'store_multiple_e
 Route::post('/multiple_estimates_menus', [EstimateController::class, 'multiple_estimates_menus'])->name('multiple_estimates_menus.index');
 
 Route::delete( '/all_estimates/{estimate_id}/close_estimate', [EstimateController::class, 'close_estimate'])->name('all_estimates.close_estimate');
+Route::delete( '/all_estimates/{estimate_id}/delete_estimate', [EstimateController::class, 'delete_estimate'])->name('all_estimates.delete_estimate');
 
 
 Route::post('/estimate/create-session', [EstimateController::class, 'create_session'])->name('estimate.create_session');
