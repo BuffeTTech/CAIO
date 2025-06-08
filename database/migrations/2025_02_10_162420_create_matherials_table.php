@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MatherialType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,9 +15,8 @@ return new class extends Migration
         Schema::create('matherials', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('category');
-            // $table->string('unit');
-            $table->float('quantity');
+            $table->enum('category', array_column(MatherialType::cases(),'name'));
+            $table->float('quantity'); // QUANTIDADE NO ESTOQUE
             $table->string('observation')->nullable();
             $table->timestamps();
         });

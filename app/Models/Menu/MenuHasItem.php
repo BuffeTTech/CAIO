@@ -1,17 +1,16 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Menu;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ItemHasMatherial extends Model
+class MenuHasItem extends Model
 {
-    //
     protected $guarded = [];
 
-    public function matherial()
+    public function menu()
     {
-        return $this->belongsTo(Matherial::class, 'matherial_id');
+        return $this->belongsTo(Menu::class, 'menu_id');
     }
 
     public function item() {

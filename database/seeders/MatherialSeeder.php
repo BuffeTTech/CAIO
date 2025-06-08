@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Enums\MatherialType;
-use App\Models\ItemHasMatherial;
-use App\Models\Matherial;
+use App\Models\Menu\ItemHasMatherial;
+use App\Models\Menu\Matherial;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -89,7 +89,7 @@ class MatherialSeeder extends Seeder
                 "name"=>$equipment,
                 "category"=>MatherialType::EQUIPMENT->name,
                 // "unit"=>"",
-                "quantity"=>random_int(0, 15),
+                "quantity"=>random_int(1, 15),
                 "observation"=>"",
             ]);
             array_push($items, $item);
@@ -100,7 +100,7 @@ class MatherialSeeder extends Seeder
                 "name"=>$tool,
                 "category"=>MatherialType::TOOL->name,
                 // "unit"=>"",
-                "quantity"=>random_int(0, 15),
+                "quantity"=>random_int(1, 15),
                 "observation"=>"Tamanho ".$tamanhos[array_rand($tamanhos, 1)],
             ]);
             array_push($items, $item);

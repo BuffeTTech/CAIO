@@ -3,8 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\IngredientCategory;
-use App\Models\Ingredient;
-use App\Models\ItemHasIngredient;
+use App\Enums\IngredientSourceType;
+use App\Enums\UnitEnum;
+use App\Models\Menu\Ingredient;
+use App\Models\Menu\ItemHasIngredient;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -88,7 +90,7 @@ class IngredientSeeder extends Seeder
 
                 ],
                 "unid"=>[],
-                "liters"=>[
+                "liter"=>[
                     "Óleo de soja",
                     "Manteiga"
                 ]
@@ -96,6 +98,37 @@ class IngredientSeeder extends Seeder
         ];
 
         $allIngredientIds = Ingredient::pluck('id')->toArray(); // Obtém todos os IDs existentes
+        $proportionsArray = [
+            0.010,
+            0.020,
+            0.060,
+            0.100,
+            0.150,
+            0.225,
+            0.250
+        ];
+        $sourceTypeArray = [
+            IngredientSourceType::MARKET->name,
+            IngredientSourceType::SUPPLIER->name,
+
+        ];
+
+        $fornecedores = [
+            "Atacadão Central",
+            "Distribuidora Brasil",
+            "Fornecedora Global",
+            "Comercial Silva & Cia",
+            "Mega Atacado",
+            "Distribuidora União",
+            "Atacado dos Campos",
+            "Central de Suprimentos",
+            "Grupo ForneceMais",
+            "Distribuidora Alfa",
+            "Super Atacado SP",
+            "Comercial Nova Era",
+            "Rede de Fornecimento RJ"
+        ];
+
 
         $batchInsertItems = [];
         $batchInsertRelations = [];
@@ -106,6 +139,8 @@ class IngredientSeeder extends Seeder
                     $batchInsertItems[] = [
                         "name" => $ingredient,
                         "category" => $category,
+                        "source_type"=> $sourceTypeArray[random_int(0,count($sourceTypeArray) - 1)],
+                        "ingredient_source"=> $fornecedores[random_int(0,count($fornecedores) - 1)],
                         "unit" => $key,
                         "quantity" => in_array($unit, ["kg", "liters"]) ? random_int(1, 10) : random_int(1, 15),
                         "observation" => "",
@@ -135,13 +170,15 @@ class IngredientSeeder extends Seeder
                     } while (in_array($randomIngredientId, $usedIngredients));
 
                     $usedIngredients[] = $randomIngredientId;
+                    
 
                     // Adiciona relação para inserção em lote
                     $batchInsertRelations[] = [
                         "item_id" => $ingredientId,
                         "ingredient_id" => $randomIngredientId,
                         "observation" => "",
-                        "quantity" => random_int(1, 3),
+                        "proportion_per_item" => $proportionsArray[random_int(0, count($proportionsArray) - 1)],
+                        "unit"=>UnitEnum::KG->name
                     ];
                 }
             }
@@ -153,9 +190,5 @@ class IngredientSeeder extends Seeder
         } else {
             echo "⚠️ Nenhum ingrediente encontrado. Verifique se a lista de ingredientes está correta.";
         }
-
-
-        
-
     }
 }

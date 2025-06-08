@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Menu;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ItemHasIngredient extends Model
 {
-    //
     protected $guarded = [];
 
     public function ingredient()

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('item_has_matherials', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('item_id');
-            $table->foreignId('matherial_id');
+            $table->foreignId('item_id')->constrained()->onDelete('cascade');
+            $table->foreignId('matherial_id')->constrained()->onDelete('cascade');
             $table->string('observation')->nullable();
             $table->float('quantity');
             $table->timestamps();
